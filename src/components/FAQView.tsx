@@ -14,7 +14,6 @@ import {
   Mail,
   ChevronRight,
 } from "lucide-react";
-import { useSiteStore } from "../store/siteStore";
 
 interface FAQCategoryItem {
   id: string;
@@ -99,7 +98,6 @@ export function FAQView({ onBack }: { onBack: () => void }) {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [openIndex, setOpenIndex] = useState<string | null>("faq_legal_1");
-  const { publishedConfig } = useSiteStore();
 
   const filteredFaqs = useMemo(() => {
     return ALL_FAQS.filter((faq) => {

@@ -1,5 +1,4 @@
-import React from "react";
-import { ArrowLeft, Calendar, FileText, Share2, CheckCircle2, ChevronRight, Download } from "lucide-react";
+import { ArrowLeft, Calendar, FileText, CheckCircle2, ChevronRight, Download } from "lucide-react";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 
 export interface PageViewProps {
@@ -20,7 +19,6 @@ export interface PageViewProps {
 }
 
 export function PageView({ page, onBack }: PageViewProps) {
-  const cleanSlug = page.slug.replace(/^\/+|\/+$/g, "");
   const formattedCategory = page.category || "Official Guide";
 
   // Sanitize excerpt to remove raw markdown images, broken link tails, and dangling URLs

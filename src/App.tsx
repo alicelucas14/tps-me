@@ -17,10 +17,9 @@ import { SitemapView } from "./components/SitemapView";
 import { FAQView } from "./components/FAQView";
 import { GlobalBackground } from "./components/GlobalBackground";
 import { AdminLayout } from "./admin/AdminLayout";
-import { useSiteStore, type PageConfig, type PostConfig } from "./store/siteStore";
+import { useSiteStore } from "./store/siteStore";
 import { updateRouteMeta } from "./utils/seoHelper";
 import rawWpPages from "./data/wpPages.json";
-import rawWpPosts from "./data/wpPosts.json";
 
 const SECTION_ANCHORS = new Set([
   "download",

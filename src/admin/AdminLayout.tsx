@@ -12,6 +12,7 @@ import {
   Sparkles,
   FileText,
   BookOpen,
+  PanelBottom,
 } from "lucide-react";
 import { DashboardOverview } from "./pages/DashboardOverview";
 import { PagesManager } from "./pages/PagesManager";
@@ -19,6 +20,7 @@ import { PostsManager } from "./pages/PostsManager";
 import { TournamentsManager } from "./pages/TournamentsManager";
 import { BonusesManager } from "./pages/BonusesManager";
 import { SettingsManager } from "./pages/SettingsManager";
+import { FooterManager } from "./pages/FooterManager";
 import { VisualEditor } from "./builder/VisualEditor";
 import { useSiteStore } from "../store/siteStore";
 
@@ -29,6 +31,7 @@ export type AdminPage =
   | "builder"
   | "tournaments"
   | "bonuses"
+  | "footer"
   | "settings";
 
 export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
@@ -58,6 +61,7 @@ export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
     },
     { id: "tournaments" as const, label: "Tournaments & Tables", icon: Trophy },
     { id: "bonuses" as const, label: "Bonuses & Offers", icon: Gift },
+    { id: "footer" as const, label: "Footer Manager", icon: PanelBottom },
     { id: "settings" as const, label: "Settings & Compliance", icon: Settings },
   ];
 
@@ -154,6 +158,7 @@ export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
               {currentPage === "posts" && "Blog & News Posts"}
               {currentPage === "tournaments" && "Tournaments Management"}
               {currentPage === "bonuses" && "Bonuses & Rewards"}
+              {currentPage === "footer" && "Footer Navigation & Compliance"}
               {currentPage === "settings" && "Compliance & Gateways"}
             </h1>
           </div>
@@ -187,6 +192,7 @@ export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
           {currentPage === "posts" && <PostsManager />}
           {currentPage === "tournaments" && <TournamentsManager />}
           {currentPage === "bonuses" && <BonusesManager />}
+          {currentPage === "footer" && <FooterManager />}
           {currentPage === "settings" && <SettingsManager />}
         </main>
       </div>
