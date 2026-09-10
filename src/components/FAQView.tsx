@@ -83,6 +83,18 @@ const ALL_FAQS: FAQCategoryItem[] = [
     q: "What documents are required for KYC verification?",
     a: "KYC requires an official government-issued ID (Aadhaar, PAN Card, Voter ID, or Passport) and your UPI ID / Bank account details matching your name for fast tax compliance (TDS) and secure payouts.",
   },
+  {
+    id: "faq_responsible_2",
+    category: "responsible",
+    q: "What happens if I suspect someone is cheating or colluding?",
+    a: "Report any suspicious player in-app directly from the table menu. Our trust & safety team investigates within 2 hours. If cheating or multi-accounting is confirmed, the offending account is permanently banned and forfeited chips are redistributed to affected players.",
+  },
+  {
+    id: "faq_gameplay_3",
+    category: "gameplay",
+    q: "Which mobile devices and operating systems are supported?",
+    a: "Teen Patti Stars runs natively on Android 7+ (APK direct download) and iOS 14+ via web app and TestFlight. The app is lightweight (under 45 MB), works on 4G networks, and supports low-end budget smartphones.",
+  },
 ];
 
 const CATEGORIES = [
