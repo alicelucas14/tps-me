@@ -111,7 +111,7 @@ export function Footer() {
             {footer.copyright} {footer.cinNumber}
           </div>
           <div className="flex flex-wrap items-center gap-4 text-xs text-white/40">
-            <a href="/#/sitemap" className="hover:text-white">
+            <a href="/sitemap" className="hover:text-white">
               HTML Sitemap
             </a>
             <span className="h-1 w-1 rounded-full bg-white/20" />
@@ -123,7 +123,7 @@ export function Footer() {
               llms.txt (AI)
             </a>
             <span className="h-1 w-1 rounded-full bg-white/20" />
-            <a href="/#admin" className="hover:text-emerald-400 font-medium">
+            <a href="/admin" className="hover:text-emerald-400 font-medium">
               Admin HQ
             </a>
             <span className="h-1 w-1 rounded-full bg-white/20" />

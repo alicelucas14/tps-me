@@ -34,19 +34,25 @@ const SECTION_ANCHORS = new Set([
 function getActiveRouteString(): string {
   if (typeof window === "undefined") return "home";
 
-  const rawHash = window.location.hash.replace(/^#\/?|\/+$/g, "");
-  const pathname = window.location.pathname.replace(/^\/+|\/+$/g, "");
+  const rawHash = window.location.hash.replace(/^#\/?/, "").replace(/\/+$/, "").trim();
+  const pathname = window.location.pathname.replace(/^\/+|\/+$/g, "").trim();
 
-  // If hash is an in-page section anchor, it's not a SPA route
-  if (SECTION_ANCHORS.has(rawHash.toLowerCase())) {
+  // If hash is an in-page section anchor (e.g. #download, #pricing)
+  if (rawHash && SECTION_ANCHORS.has(rawHash.toLowerCase())) {
     return pathname && pathname !== "/" ? pathname : "home";
   }
 
-  // If user visits an old hash route like /#/privacy-policy, clean it up to /privacy-policy
-  if (window.location.hash.startsWith("#/") && rawHash && rawHash !== "/") {
+  // If user visits ANY route using a hash (e.g. #admin, /#admin, #/blog, /#/privacy-policy)
+  if (rawHash && rawHash !== "/" && !SECTION_ANCHORS.has(rawHash.toLowerCase())) {
     const cleanPath = `/${rawHash}`;
     window.history.replaceState(null, "", cleanPath);
     return rawHash;
+  }
+
+  // If there's an empty hash like "/#" or "#", clean it from the address bar
+  if (window.location.hash === "#" || window.location.hash === "#/") {
+    const cleanPath = pathname ? `/${pathname}` : "/";
+    window.history.replaceState(null, "", cleanPath);
   }
 
   if (pathname.startsWith("admin")) {
@@ -77,9 +83,9 @@ export default function App() {
     return publishedConfig.posts?.length ? publishedConfig.posts : (draftConfig.posts || []);
   }, [publishedConfig.posts, draftConfig.posts]);
 
-  // Clean navigation helper
+  // Clean navigation helper - guarantees no hash in URL
   const navigateTo = (path: string) => {
-    const clean = path.replace(/^\/+|\/+$/g, "");
+    const clean = path.replace(/^#\/?/, "").replace(/^\/+|\/+$/g, "").trim();
     const targetUrl = clean ? `/${clean}` : "/";
     window.history.pushState(null, "", targetUrl);
     setRoute(clean || "home");
@@ -107,28 +113,23 @@ export default function App() {
       // In-page section anchors like #download or #faq
       if (href.startsWith("#") && !href.startsWith("#/")) {
         const targetId = href.replace(/^#/, "");
-        const currentActive = getActiveRouteString();
-        
-        // If we're on an internal page like /blog or /players-guide, return to home and scroll to section
-        if (currentActive !== "home" && currentActive !== "") {
+        if (SECTION_ANCHORS.has(targetId.toLowerCase())) {
           e.preventDefault();
-          window.history.pushState(null, "", `/#${targetId}`);
-          setRoute("home");
-          setTimeout(() => {
+          const currentActive = getActiveRouteString();
+          if (currentActive !== "home" && currentActive !== "") {
+            navigateTo("/");
+            setTimeout(() => {
+              const el = document.getElementById(targetId);
+              if (el) el.scrollIntoView({ behavior: "smooth" });
+            }, 150);
+          } else {
             const el = document.getElementById(targetId);
             if (el) {
               el.scrollIntoView({ behavior: "smooth" });
             }
-          }, 150);
-        } else {
-          // Already on home, scroll smoothly to element
-          const el = document.getElementById(targetId);
-          if (el) {
-            e.preventDefault();
-            el.scrollIntoView({ behavior: "smooth" });
           }
+          return;
         }
-        return;
       }
 
       // Special static assets
@@ -136,15 +137,18 @@ export default function App() {
         return;
       }
 
-      // Internal links like /privacy-policy or /#/privacy-policy or /blog
-      if (href.startsWith("/") && !href.startsWith("//")) {
+      // Internal links like /privacy-policy, /#/privacy-policy, /#admin, /blog
+      if (href.startsWith("/") || href.startsWith("#/")) {
         e.preventDefault();
-        const cleanHref = href.replace(/^#\/?|\/+$/g, "").replace(/^\/+|\/+$/g, "");
+        const cleanHref = href
+          .replace(/^#\/?/, "")
+          .replace(/^\/+|\/+$/g, "")
+          .replace(/^#\/?/, "");
         navigateTo(cleanHref);
       } else if (href.includes("teenpattistars.me/") || href.includes("teenpattistars.com/")) {
         try {
           const parsed = new URL(href);
-          const cleanPath = parsed.pathname.replace(/^\/+|\/+$/g, "");
+          const cleanPath = parsed.pathname.replace(/^\/+|\/+$/g, "").replace(/^#\/?/, "");
           e.preventDefault();
           navigateTo(cleanPath);
         } catch {}
@@ -283,7 +287,7 @@ export default function App() {
       updateRouteMeta({
         title: "Admin Command HQ | Teen Patti Stars",
         description: "Manage Teen Patti Stars website, pages, tournaments, and SEO settings.",
-        path: "/#admin",
+        path: "/admin",
       });
       return;
     }
@@ -323,7 +327,7 @@ export default function App() {
       updateRouteMeta({
         title: "Website Sitemap & AI Index Directory | Teen Patti Stars",
         description: "Complete index of all live pages, strategy guides, tournament recaps, and AI crawler documentation files.",
-        path: "/#/sitemap",
+        path: "/sitemap",
       });
       return;
     }
@@ -332,7 +336,7 @@ export default function App() {
       updateRouteMeta({
         title: "Teen Patti Chronicles & Strategy Guides | Teen Patti Stars",
         description: "Master Teen Patti with expert card strategies, table math, VIP guides, and tournament recaps.",
-        path: "/#/blog",
+        path: "/blog",
       });
       return;
     }
@@ -342,7 +346,7 @@ export default function App() {
       updateRouteMeta({
         title: `${post.title} | Teen Patti Stars`,
         description: post.excerpt,
-        path: `/#/blog/${post.slug}`,
+        path: `/blog/${post.slug}`,
         ogImage: post.coverImage || "https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=1200&q=80",
         type: "article",
         jsonLd: {
@@ -362,7 +366,7 @@ export default function App() {
           },
           datePublished: post.date,
           articleSection: post.category,
-          mainEntityOfPage: `https://teenpattistars.me/#/blog/${post.slug}`,
+          mainEntityOfPage: `https://teenpattistars.me/blog/${post.slug}`,
         },
       });
       return;
@@ -370,16 +374,17 @@ export default function App() {
 
     if (resolved.type === "page-view" && resolved.page) {
       const page = resolved.page;
+      const cleanSlug = (page.slug || "").replace(/^\/+|\/+$/g, "");
       updateRouteMeta({
         title: `${page.title} | Teen Patti Stars`,
         description: page.excerpt || `Complete official guide and information for ${page.title}`,
-        path: `/#/${page.slug}`,
+        path: `/${cleanSlug}`,
         jsonLd: {
           "@context": "https://schema.org",
           "@type": "WebPage",
           name: page.title,
           description: page.excerpt,
-          url: `https://teenpattistars.me/#/${page.slug}`,
+          url: `https://teenpattistars.me/${cleanSlug}`,
         },
       });
       return;
@@ -387,10 +392,11 @@ export default function App() {
 
     if (resolved.type === "page-sections" && resolved.page) {
       const page = resolved.page;
+      const cleanSlug = (page.slug || "").replace(/^\/+|\/+$/g, "");
       updateRouteMeta({
         title: page.seo?.title || `${page.title} | Teen Patti Stars`,
         description: page.seo?.description || `Play Teen Patti on ${page.title}`,
-        path: page.slug === "/" ? "" : `/#${page.slug}`,
+        path: cleanSlug ? `/${cleanSlug}` : "/",
       });
       return;
     }
@@ -399,7 +405,7 @@ export default function App() {
     updateRouteMeta({
       title: "Teen Patti Stars — India's Most Refined Real-Money Card Experience",
       description: "Play with 50 lakh+ verified players. Instant UPI payouts in under 30 seconds. Fair-play RNG certified. Zero bots. Pure thrill.",
-      path: "/#",
+      path: "/",
     });
   }, [resolved]);
 
@@ -409,8 +415,7 @@ export default function App() {
       <div data-theme="dark" className="bg-[#05080a] text-white">
         <AdminLayout
           onExitToSite={() => {
-            window.location.hash = "";
-            setRoute("home");
+            navigateTo("/");
           }}
         />
       </div>
@@ -445,42 +450,24 @@ export default function App() {
 
         <main>
           {resolved.type === "faq" ? (
-            <FAQView
-              onBack={() => {
-                window.history.pushState(null, "", "/");
-                setRoute("home");
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-            />
+            <FAQView onBack={() => navigateTo("/")} />
           ) : resolved.type === "sitemap" ? (
-            <SitemapView
-              onBack={() => {
-                window.location.hash = "";
-                setRoute("home");
-              }}
-            />
+            <SitemapView onBack={() => navigateTo("/")} />
           ) : resolved.type === "blog" ? (
             <BlogView
-              onBack={() => {
-                window.location.hash = "";
-                setRoute("home");
-              }}
+              onBack={() => navigateTo("/")}
+              onNavigatePost={(slug) => navigateTo(`blog/${slug}`)}
             />
           ) : resolved.type === "blog-single" ? (
             <BlogView
               activeSlug={resolved.slug}
-              onBack={() => {
-                window.location.hash = "#/blog";
-                setRoute("blog");
-              }}
+              onBack={() => navigateTo("blog")}
+              onNavigatePost={(slug) => navigateTo(`blog/${slug}`)}
             />
           ) : resolved.type === "page-view" ? (
             <PageView
               page={resolved.page}
-              onBack={() => {
-                window.location.hash = "";
-                setRoute("home");
-              }}
+              onBack={() => navigateTo("/")}
             />
           ) : resolved.type === "not-found" ? (
             <div className="min-h-[70vh] flex items-center justify-center px-4 py-20">
@@ -494,21 +481,13 @@ export default function App() {
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-3">
                   <button
-                    onClick={() => {
-                      window.history.pushState(null, "", "/");
-                      setRoute("home");
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
+                    onClick={() => navigateTo("/")}
                     className="rounded-full bg-gradient-to-r from-[#f5c242] to-[#e6a817] px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-black shadow-lg shadow-amber-500/20 hover:scale-105 transition-all"
                   >
                     Back to Home
                   </button>
                   <button
-                    onClick={() => {
-                      window.history.pushState(null, "", "/blog");
-                      setRoute("blog");
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
+                    onClick={() => navigateTo("blog")}
                     className="rounded-full border border-white/15 bg-white/5 px-6 py-2.5 text-xs font-semibold text-white/80 hover:bg-white/10 transition-all"
                   >
                     Browse Blog

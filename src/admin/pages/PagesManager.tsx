@@ -100,7 +100,7 @@ export function PagesManager({ onEditWithBuilder }: { onEditWithBuilder: (pageId
                     </button>
 
                     <a
-                      href={`/#${page.slug === "/" ? "" : page.slug}`}
+                      href={page.slug.startsWith("/") ? page.slug : `/${page.slug}`}
                       target="_blank"
                       rel="noreferrer"
                       className="p-1.5 text-white/50 hover:text-white"

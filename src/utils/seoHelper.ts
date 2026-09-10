@@ -88,25 +88,28 @@ export function generateDynamicSitemapXml(config: SiteConfig, baseUrl: string = 
 
   const staticEntries = [
     { loc: `${baseUrl}/`, priority: "1.0", changefreq: "daily", lastmod: currentDate },
-    { loc: `${baseUrl}/#/how-to-play`, priority: "0.9", changefreq: "weekly", lastmod: currentDate },
-    { loc: `${baseUrl}/#/vip-club`, priority: "0.9", changefreq: "weekly", lastmod: currentDate },
-    { loc: `${baseUrl}/#/blog`, priority: "0.8", changefreq: "daily", lastmod: currentDate },
-    { loc: `${baseUrl}/#/sitemap`, priority: "0.7", changefreq: "monthly", lastmod: currentDate },
+    { loc: `${baseUrl}/how-to-play`, priority: "0.9", changefreq: "weekly", lastmod: currentDate },
+    { loc: `${baseUrl}/vip-club`, priority: "0.9", changefreq: "weekly", lastmod: currentDate },
+    { loc: `${baseUrl}/blog`, priority: "0.8", changefreq: "daily", lastmod: currentDate },
+    { loc: `${baseUrl}/sitemap`, priority: "0.7", changefreq: "monthly", lastmod: currentDate },
   ];
 
   // Map custom pages
   const pageEntries = (config.pages || [])
     .filter((p) => p.slug !== "/" && p.slug !== "/how-to-play" && p.slug !== "/vip-club")
-    .map((p) => ({
-      loc: `${baseUrl}/#${p.slug}`,
-      priority: "0.8",
-      changefreq: "weekly",
-      lastmod: p.createdAt || currentDate,
-    }));
+    .map((p) => {
+      const clean = (p.slug || "").replace(/^\/+|\/+$/g, "");
+      return {
+        loc: `${baseUrl}/${clean}`,
+        priority: "0.8",
+        changefreq: "weekly",
+        lastmod: p.createdAt || currentDate,
+      };
+    });
 
   // Map blog posts
   const postEntries = (config.posts || []).map((post) => ({
-    loc: `${baseUrl}/#/blog/${post.slug}`,
+    loc: `${baseUrl}/blog/${post.slug}`,
     priority: "0.8",
     changefreq: "monthly",
     lastmod: currentDate,
@@ -179,11 +182,14 @@ Sitemap: ${baseUrl}/sitemap.xml
  */
 export function generateDynamicLlmsTxt(config: SiteConfig, baseUrl: string = DEFAULT_BASE_URL): string {
   const pagesList = (config.pages || [])
-    .map((p) => `- [${p.title}](${baseUrl}/#${p.slug === "/" ? "" : p.slug}): ${p.seo?.description || "Interactive page"}`)
+    .map((p) => {
+      const clean = (p.slug || "").replace(/^\/+|\/+$/g, "");
+      return `- [${p.title}](${baseUrl}/${clean}): ${p.seo?.description || "Interactive page"}`;
+    })
     .join("\n");
 
   const postsList = (config.posts || [])
-    .map((p) => `- [${p.title}](${baseUrl}/#/blog/${p.slug}) (${p.category}): ${p.excerpt}`)
+    .map((p) => `- [${p.title}](${baseUrl}/blog/${p.slug}) (${p.category}): ${p.excerpt}`)
     .join("\n");
 
   return `# Teen Patti Stars — AI & LLM Site Guide (llms.txt)
@@ -199,7 +205,7 @@ export function generateDynamicLlmsTxt(config: SiteConfig, baseUrl: string = DEF
 
 ## Core Site Sections & Pages
 ${pagesList}
-- [HTML Sitemap & Directory](${baseUrl}/#/sitemap): Full site map and directory index.
+- [HTML Sitemap & Directory](${baseUrl}/sitemap): Full site map and directory index.
 
 ## Official Strategy Articles & Guides
 ${postsList}

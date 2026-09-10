@@ -45,7 +45,7 @@ export function Navbar() {
           )}
         >
           {/* Logo */}
-          <a href="/#" className="flex items-center gap-2.5">
+          <a href="/" className="flex items-center gap-2.5">
             <div className="relative grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-800 shadow-[0_8px_24px_-8px_rgba(16,185,129,0.6)]">
               <Crown className="h-4.5 w-4.5 text-[#f5c242]" strokeWidth={2.5} />
               <div className="absolute inset-0 rounded-xl ring-1 ring-white/20" />

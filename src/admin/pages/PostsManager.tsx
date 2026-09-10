@@ -54,9 +54,9 @@ const PRESET_IMAGES = [
 
 const PRESET_BACKLINKS = [
   { label: "Home Page (Front Page)", url: "/" },
-  { label: "How to Play Guide (Rules & Hands)", url: "/#/how-to-play" },
-  { label: "VIP Club & Cashback Rewards", url: "/#/vip-club" },
-  { label: "Blog & Chronicles Archive", url: "/#/blog" },
+  { label: "How to Play Guide (Rules & Hands)", url: "/players-guide" },
+  { label: "VIP Club & Cashback Rewards", url: "/loyalty-programs" },
+  { label: "Blog & Chronicles Archive", url: "/blog" },
   { label: "Instant App Download", url: "/#download" },
 ];
 
@@ -301,7 +301,7 @@ export function PostsManager() {
 
             <div className="px-5 pb-4 pt-1 flex items-center justify-end gap-1.5 border-t border-white/5">
               <a
-                href={`/#/blog/${post.slug}`}
+                href={`/blog/${post.slug}`}
                 target="_blank"
                 rel="noreferrer"
                 className="p-1.5 text-xs text-white/50 hover:text-white"
