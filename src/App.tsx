@@ -101,8 +101,16 @@ export default function App() {
     };
 
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "tps_site_config_published_v8" || e.key === "tps_site_config_draft_v8") {
-        window.location.reload();
+      // Sync published changes without reloading page
+      if (e.key === "tps_site_config_published_v8") {
+        const siteStore = useSiteStore.getState();
+        const publishedStr = localStorage.getItem("tps_site_config_published_v8");
+        if (publishedStr) {
+          try {
+            const parsed = JSON.parse(publishedStr);
+            siteStore.importConfig(parsed);
+          } catch {}
+        }
       }
     };
 
