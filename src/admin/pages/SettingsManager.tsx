@@ -1,7 +1,29 @@
 import { useState } from "react";
-import { ShieldCheck, CreditCard, Save, Check, Globe, Sparkles, Download, ExternalLink, Copy, Palette, Image as ImageIcon, PaintBucket } from "lucide-react";
+import {
+  ShieldCheck,
+  CreditCard,
+  Save,
+  Check,
+  Globe,
+  Sparkles,
+  Download,
+  ExternalLink,
+  Copy,
+  Palette,
+  Image as ImageIcon,
+  PaintBucket,
+  Edit3,
+  RotateCcw,
+  X,
+  Code,
+  FileCode,
+} from "lucide-react";
 import { useSiteStore } from "../../store/siteStore";
-import { generateDynamicSitemapXml, generateDynamicRobotsTxt, generateDynamicLlmsTxt } from "../../utils/seoHelper";
+import {
+  generateDynamicSitemapXml,
+  generateDynamicRobotsTxt,
+  generateDynamicLlmsTxt,
+} from "../../utils/seoHelper";
 
 export function SettingsManager() {
   const { draftConfig } = useSiteStore();
@@ -11,13 +33,61 @@ export function SettingsManager() {
   const [geoBlock, setGeoBlock] = useState(true);
   const [copiedFile, setCopiedFile] = useState<string | null>(null);
 
+  // Custom SEO / AI file content states
+  const [customSitemap, setCustomSitemap] = useState<string | null>(null);
+  const [customLlms, setCustomLlms] = useState<string | null>(null);
+  const [customRobots, setCustomRobots] = useState<string | null>(null);
+
+  // Editor Modal State
+  const [activeEditingFile, setActiveEditingFile] = useState<
+    "sitemap" | "llms" | "robots" | null
+  >(null);
+  const [editorContent, setEditorContent] = useState<string>("");
+
   const pagesCount = (draftConfig.pages || []).length;
   const postsCount = (draftConfig.posts || []).length;
   const totalIndexedUrls = pagesCount + postsCount + 2;
 
-  const sitemapXml = generateDynamicSitemapXml(draftConfig);
-  const robotsTxt = generateDynamicRobotsTxt();
-  const llmsTxt = generateDynamicLlmsTxt(draftConfig);
+  // Auto-generated defaults
+  const autoSitemapXml = generateDynamicSitemapXml(draftConfig);
+  const autoRobotsTxt = generateDynamicRobotsTxt();
+  const autoLlmsTxt = generateDynamicLlmsTxt(draftConfig);
+
+  // Active contents (custom override if set, else auto-generated)
+  const activeSitemapXml = customSitemap ?? autoSitemapXml;
+  const activeRobotsTxt = customRobots ?? autoRobotsTxt;
+  const activeLlmsTxt = customLlms ?? autoLlmsTxt;
+
+  const handleOpenEditor = (fileType: "sitemap" | "llms" | "robots") => {
+    setActiveEditingFile(fileType);
+    if (fileType === "sitemap") setEditorContent(activeSitemapXml);
+    if (fileType === "llms") setEditorContent(activeLlmsTxt);
+    if (fileType === "robots") setEditorContent(activeRobotsTxt);
+  };
+
+  const handleSaveEditorContent = () => {
+    if (activeEditingFile === "sitemap") setCustomSitemap(editorContent);
+    if (activeEditingFile === "llms") setCustomLlms(editorContent);
+    if (activeEditingFile === "robots") setCustomRobots(editorContent);
+    setActiveEditingFile(null);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
+  const handleResetToAuto = () => {
+    if (activeEditingFile === "sitemap") {
+      setEditorContent(autoSitemapXml);
+      setCustomSitemap(null);
+    }
+    if (activeEditingFile === "llms") {
+      setEditorContent(autoLlmsTxt);
+      setCustomLlms(null);
+    }
+    if (activeEditingFile === "robots") {
+      setEditorContent(autoRobotsTxt);
+      setCustomRobots(null);
+    }
+  };
 
   const handleCopy = (content: string, type: string) => {
     navigator.clipboard.writeText(content);
@@ -46,7 +116,9 @@ export function SettingsManager() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-white">System, SEO & AI Engine Settings</h2>
+          <h2 className="text-xl font-bold text-white">
+            System, SEO & AI Engine Settings
+          </h2>
           <p className="text-xs text-white/50">
             Payment gateways, KYC compliance, XML Sitemaps, and Generative AI (LLMs.txt) crawling configurations.
           </p>
@@ -76,7 +148,7 @@ export function SettingsManager() {
                 </span>
               </h3>
               <p className="text-xs text-white/50">
-                Auto-generates RFC Sitemaps, Schema.org JSON-LD graphs, and modern LLMs.txt for Perplexity & ChatGPT.
+                Edit RFC Sitemaps, Schema.org JSON-LD graphs, and modern LLMs.txt for Perplexity & ChatGPT.
               </p>
             </div>
           </div>
@@ -94,34 +166,63 @@ export function SettingsManager() {
 
         {/* 3 Core SEO / AI Files Generator Cards */}
         <div className="grid gap-4 md:grid-cols-3">
-          
           {/* Card 1: sitemap.xml */}
           <div className="rounded-xl border border-white/10 bg-black/40 p-4 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between">
-                <span className="font-mono text-xs font-bold text-emerald-400">sitemap.xml</span>
-                <span className="text-[10px] text-white/40">{pagesCount} pgs + {postsCount} posts</span>
+                <span className="font-mono text-xs font-bold text-emerald-400">
+                  sitemap.xml
+                </span>
+                <span
+                  className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                    customSitemap
+                      ? "bg-amber-400/20 text-amber-300 border border-amber-400/30"
+                      : "bg-emerald-400/10 text-emerald-300"
+                  }`}
+                >
+                  {customSitemap ? "Custom Edited" : `${pagesCount} pgs + ${postsCount} posts`}
+                </span>
               </div>
               <p className="mt-2 text-[11px] leading-relaxed text-white/60">
                 Structured XML sitemap notifying Google and Bing crawlers about all created pages & strategy guides.
               </p>
             </div>
 
-            <div className="mt-4 flex items-center gap-2 border-t border-white/5 pt-3">
+            <div className="mt-4 space-y-2 border-t border-white/5 pt-3">
               <button
-                onClick={() => handleCopy(sitemapXml, "sitemap")}
-                className="flex-1 flex items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 py-1.5 text-[11px] font-semibold text-white/80 hover:bg-white/10"
+                onClick={() => handleOpenEditor("sitemap")}
+                className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 py-1.5 text-xs font-bold text-emerald-300 hover:bg-emerald-500/20 transition-all"
               >
-                {copiedFile === "sitemap" ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
-                <span>{copiedFile === "sitemap" ? "Copied" : "Copy XML"}</span>
+                <Edit3 className="h-3.5 w-3.5" />
+                <span>Edit XML Code</span>
               </button>
-              <button
-                onClick={() => handleDownload(sitemapXml, "sitemap.xml", "application/xml")}
-                className="p-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
-                title="Download sitemap.xml"
-              >
-                <Download className="h-3.5 w-3.5" />
-              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleCopy(activeSitemapXml, "sitemap")}
+                  className="flex-1 flex items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 py-1.5 text-[11px] font-semibold text-white/80 hover:bg-white/10"
+                >
+                  {copiedFile === "sitemap" ? (
+                    <Check className="h-3 w-3 text-emerald-400" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                  <span>{copiedFile === "sitemap" ? "Copied" : "Copy XML"}</span>
+                </button>
+                <button
+                  onClick={() =>
+                    handleDownload(
+                      activeSitemapXml,
+                      "sitemap.xml",
+                      "application/xml"
+                    )
+                  }
+                  className="p-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+                  title="Download sitemap.xml"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -129,29 +230,55 @@ export function SettingsManager() {
           <div className="rounded-xl border border-white/10 bg-black/40 p-4 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between">
-                <span className="font-mono text-xs font-bold text-amber-400">llms.txt</span>
-                <span className="rounded bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-bold text-amber-300">AI Standard</span>
+                <span className="font-mono text-xs font-bold text-amber-400">
+                  llms.txt
+                </span>
+                <span
+                  className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                    customLlms
+                      ? "bg-amber-400/20 text-amber-300 border border-amber-400/30"
+                      : "bg-amber-400/10 text-amber-300"
+                  }`}
+                >
+                  {customLlms ? "Custom Edited" : "AI Standard"}
+                </span>
               </div>
               <p className="mt-2 text-[11px] leading-relaxed text-white/60">
                 Machine-readable documentation for Perplexity, ChatGPT, Claude, and Gemini AI search citation.
               </p>
             </div>
 
-            <div className="mt-4 flex items-center gap-2 border-t border-white/5 pt-3">
+            <div className="mt-4 space-y-2 border-t border-white/5 pt-3">
               <button
-                onClick={() => handleCopy(llmsTxt, "llms")}
-                className="flex-1 flex items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 py-1.5 text-[11px] font-semibold text-white/80 hover:bg-white/10"
+                onClick={() => handleOpenEditor("llms")}
+                className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 py-1.5 text-xs font-bold text-amber-300 hover:bg-amber-500/20 transition-all"
               >
-                {copiedFile === "llms" ? <Check className="h-3 w-3 text-amber-400" /> : <Copy className="h-3 w-3" />}
-                <span>{copiedFile === "llms" ? "Copied" : "Copy LLMs"}</span>
+                <Edit3 className="h-3.5 w-3.5" />
+                <span>Edit LLMs Code</span>
               </button>
-              <button
-                onClick={() => handleDownload(llmsTxt, "llms.txt", "text/plain")}
-                className="p-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
-                title="Download llms.txt"
-              >
-                <Download className="h-3.5 w-3.5" />
-              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleCopy(activeLlmsTxt, "llms")}
+                  className="flex-1 flex items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 py-1.5 text-[11px] font-semibold text-white/80 hover:bg-white/10"
+                >
+                  {copiedFile === "llms" ? (
+                    <Check className="h-3 w-3 text-amber-400" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                  <span>{copiedFile === "llms" ? "Copied" : "Copy LLMs"}</span>
+                </button>
+                <button
+                  onClick={() =>
+                    handleDownload(activeLlmsTxt, "llms.txt", "text/plain")
+                  }
+                  className="p-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
+                  title="Download llms.txt"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -159,34 +286,141 @@ export function SettingsManager() {
           <div className="rounded-xl border border-white/10 bg-black/40 p-4 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between">
-                <span className="font-mono text-xs font-bold text-sky-400">robots.txt</span>
-                <span className="text-[10px] text-white/40">Search & AI Allowed</span>
+                <span className="font-mono text-xs font-bold text-sky-400">
+                  robots.txt
+                </span>
+                <span
+                  className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                    customRobots
+                      ? "bg-amber-400/20 text-amber-300 border border-amber-400/30"
+                      : "bg-sky-400/10 text-sky-300"
+                  }`}
+                >
+                  {customRobots ? "Custom Edited" : "Search & AI Allowed"}
+                </span>
               </div>
               <p className="mt-2 text-[11px] leading-relaxed text-white/60">
                 Allows Googlebot, Bingbot, GPTBot, and PerplexityBot while securing the admin directory.
               </p>
             </div>
 
-            <div className="mt-4 flex items-center gap-2 border-t border-white/5 pt-3">
+            <div className="mt-4 space-y-2 border-t border-white/5 pt-3">
               <button
-                onClick={() => handleCopy(robotsTxt, "robots")}
-                className="flex-1 flex items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 py-1.5 text-[11px] font-semibold text-white/80 hover:bg-white/10"
+                onClick={() => handleOpenEditor("robots")}
+                className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 py-1.5 text-xs font-bold text-sky-300 hover:bg-sky-500/20 transition-all"
               >
-                {copiedFile === "robots" ? <Check className="h-3 w-3 text-sky-400" /> : <Copy className="h-3 w-3" />}
-                <span>{copiedFile === "robots" ? "Copied" : "Copy Robots"}</span>
+                <Edit3 className="h-3.5 w-3.5" />
+                <span>Edit Robots Rules</span>
               </button>
-              <button
-                onClick={() => handleDownload(robotsTxt, "robots.txt", "text/plain")}
-                className="p-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 text-sky-300 hover:bg-sky-500/20"
-                title="Download robots.txt"
-              >
-                <Download className="h-3.5 w-3.5" />
-              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleCopy(activeRobotsTxt, "robots")}
+                  className="flex-1 flex items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 py-1.5 text-[11px] font-semibold text-white/80 hover:bg-white/10"
+                >
+                  {copiedFile === "robots" ? (
+                    <Check className="h-3 w-3 text-sky-400" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                  <span>{copiedFile === "robots" ? "Copied" : "Copy Robots"}</span>
+                </button>
+                <button
+                  onClick={() =>
+                    handleDownload(activeRobotsTxt, "robots.txt", "text/plain")
+                  }
+                  className="p-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 text-sky-300 hover:bg-sky-500/20"
+                  title="Download robots.txt"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           </div>
-
         </div>
       </div>
+
+      {/* CODE EDITOR MODAL */}
+      {activeEditingFile && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
+          <div className="flex max-h-[90vh] w-full max-w-4xl flex-col rounded-2xl border border-white/10 bg-[#080d10] shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 bg-black/40">
+              <div className="flex items-center gap-3">
+                <div className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-500/20 text-emerald-400">
+                  <FileCode className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>Editing File:</span>
+                    <span className="font-mono text-emerald-400">
+                      {activeEditingFile === "sitemap"
+                        ? "sitemap.xml"
+                        : activeEditingFile === "llms"
+                        ? "llms.txt"
+                        : "robots.txt"}
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-white/50">
+                    Modify lines directly or click reset to restore auto-generated output.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleResetToAuto}
+                  className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/70 hover:bg-rose-500/10 hover:text-rose-300 transition-all"
+                  title="Reset back to auto-generated default"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  <span>Reset Auto Defaults</span>
+                </button>
+                <button
+                  onClick={() => setActiveEditingFile(null)}
+                  className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 text-white/60 hover:text-white hover:bg-white/10"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Code Textarea Body */}
+            <div className="relative flex-1 p-4 bg-[#040608]">
+              <textarea
+                value={editorContent}
+                onChange={(e) => setEditorContent(e.target.value)}
+                className="h-[55vh] w-full resize-none rounded-xl border border-white/10 bg-black/60 p-4 font-mono text-xs text-emerald-300 focus:border-emerald-400 focus:outline-none custom-scrollbar leading-relaxed"
+                placeholder="Enter file contents here..."
+                spellCheck={false}
+              />
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between border-t border-white/10 bg-black/40 px-5 py-3 text-xs">
+              <span className="text-white/40">
+                {editorContent.split("\n").length} lines · {editorContent.length} chars
+              </span>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setActiveEditingFile(null)}
+                  className="rounded-xl border border-white/10 px-4 py-2 font-semibold text-white/70 hover:bg-white/10 hover:text-white transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEditorContent}
+                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2 font-bold text-white shadow-lg hover:brightness-110 active:scale-95 transition-all"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>Save Changes</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-5 md:grid-cols-2">
         {/* Payment Gateways */}

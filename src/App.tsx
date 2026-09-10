@@ -92,15 +92,22 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Listen to popstate and intercept internal clicks
+  // Listen to popstate and storage events for instant live site sync across tabs
   useEffect(() => {
     const handlePopState = () => {
       setRoute(getActiveRouteString());
       window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "tps_site_config_published_v6" || e.key === "tps_site_config_draft_v6") {
+        window.location.reload();
+      }
+    };
+
     window.addEventListener("popstate", handlePopState);
     window.addEventListener("hashchange", handlePopState);
+    window.addEventListener("storage", handleStorageChange);
 
     // Global click listener to intercept internal standard links for smooth clean SPA navigation
     const handleGlobalClick = (e: MouseEvent) => {
@@ -160,6 +167,7 @@ export default function App() {
     return () => {
       window.removeEventListener("popstate", handlePopState);
       window.removeEventListener("hashchange", handlePopState);
+      window.removeEventListener("storage", handleStorageChange);
       document.removeEventListener("click", handleGlobalClick);
     };
   }, []);
@@ -184,7 +192,16 @@ export default function App() {
     if (route === "faq" || route === "faq.html" || route === "#faq" || clean === "faq" || leaf === "faq") {
       return { type: "faq" as const };
     }
-    if (route === "blog") return { type: "blog" as const, slug: undefined };
+    if (
+      route === "blog" ||
+      route === "blogs" ||
+      clean === "blog" ||
+      clean === "blogs" ||
+      leaf === "blog" ||
+      leaf === "blogs"
+    ) {
+      return { type: "blog" as const, slug: undefined };
+    }
     if (route === "home" || route === "" || route === "/" || route === "#" || clean === "" || clean === "home") {
       const homePage = allPages.find((p) => p.isHome) || allPages[0];
       return { type: "home" as const, page: homePage };
@@ -210,12 +227,39 @@ export default function App() {
     const resolvedLeaf = ROUTE_ALIASES[leaf] || leaf;
 
     // 1. Explicit blog route
-    if (route.startsWith("blog/")) {
-      const post = allPosts.find((p) => p.slug === clean || p.id === clean || p.slug === leaf || p.id === leaf);
+    if (route.startsWith("blog/") || route.startsWith("blogs/")) {
+      const cleanPostSlug = clean.replace(/^blogs\//, "").replace(/^blog\//, "");
+      const post = allPosts.find(
+        (p) =>
+          p.slug === clean ||
+          p.id === clean ||
+          p.slug === leaf ||
+          p.id === leaf ||
+          p.slug === cleanPostSlug
+      );
       if (post) return { type: "blog-single" as const, post, slug: post.slug };
     }
 
-    // 2. Match against raw WordPress pages directly (contains full markdown content)
+    // 2. Match against configured pages in siteStore (Elementor Builder Page Layout)
+    const matchedStorePage = allPages.find((p) => {
+      const pSlug = (p.slug || "").replace(/^\/+|\/+$/g, "");
+      if (p.isHome || pSlug === "home" || pSlug === "") return false;
+      return (
+        pSlug === clean ||
+        pSlug === leaf ||
+        pSlug === resolvedClean ||
+        pSlug === resolvedLeaf ||
+        p.id === clean ||
+        p.id === leaf ||
+        (clean !== "home" && p.title && p.title.toLowerCase().trim() === clean.toLowerCase().trim())
+      );
+    });
+
+    if (matchedStorePage) {
+      return { type: "page-sections" as const, page: matchedStorePage };
+    }
+
+    // 3. Fallback to raw WordPress article view if not configured in Elementor
     const rawWpPage = (rawWpPages as any[]).find((p) => {
       const pSlug = (p.slug || "").replace(/^\/+|\/+$/g, "");
       if (pSlug === "home" || pSlug === "") return false;
@@ -232,32 +276,6 @@ export default function App() {
 
     if (rawWpPage) {
       return { type: "page-view" as const, page: rawWpPage };
-    }
-
-    // 3. Match against configured pages in siteStore
-    const matchedStorePage = allPages.find((p) => {
-      const pSlug = (p.slug || "").replace(/^\/+|\/+$/g, "");
-      if (p.isHome || pSlug === "home" || pSlug === "") return false;
-      return (
-        pSlug === clean ||
-        pSlug === leaf ||
-        pSlug === resolvedClean ||
-        pSlug === resolvedLeaf ||
-        p.id === clean ||
-        p.id === leaf ||
-        (clean !== "home" && p.title && p.title.toLowerCase().trim() === clean.toLowerCase().trim())
-      );
-    });
-
-    if (matchedStorePage) {
-      // If it's a page that has rich text content or was imported from WP, render PageView
-      const rawMatch = (rawWpPages as any[]).find(
-        (rp) => rp.slug === matchedStorePage.slug.replace(/^\/+|\/+$/g, "") || rp.id === matchedStorePage.id
-      );
-      if (rawMatch) {
-        return { type: "page-view" as const, page: rawMatch };
-      }
-      return { type: "page-sections" as const, page: matchedStorePage };
     }
 
     // 4. Match against blog posts (direct slug without blog/ prefix)
@@ -423,8 +441,8 @@ export default function App() {
   }
 
   const sectionsToRender =
-    resolved.type === "page-sections" && resolved.page?.sections?.length
-      ? resolved.page.sections
+    resolved.type === "page-sections"
+      ? (resolved.page?.sections || [])
       : publishedConfig.sections || [];
 
   return (

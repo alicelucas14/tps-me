@@ -921,6 +921,53 @@ export const defaultPages: PageConfig[] = [
     },
     createdAt: "2026-02-01",
   },
+  {
+    id: "page_faq",
+    slug: "/faq",
+    title: "Frequently Asked Questions (FAQ)",
+    status: "published",
+    sections: [
+      {
+        id: "sec_faq_hero",
+        type: "hero",
+        label: "FAQ Header",
+        visible: true,
+        data: {
+          eyebrow: "Help & Support Desk",
+          titlePrefix: "Frequently Asked ",
+          titleAccent: "Questions",
+          titleSuffix: "",
+          subtitle: "Get answers to all questions about instant UPI payouts, RNG fair play, card variations, and welcome bonuses.",
+          primaryCtaText: "Instant Download",
+          primaryCtaLink: "#download",
+          secondaryCtaText: "Back to Home",
+          secondaryCtaLink: "/",
+          trustText: "24/7 Support Active",
+          ratingText: "< 2 min response",
+          tableTitle: "Support Hub",
+          tablePrize: "24/7 Live",
+          tablePlayers: "Online",
+        },
+      },
+      {
+        id: "sec_faq_main",
+        type: "faq",
+        label: "FAQ Knowledgebase",
+        visible: true,
+        data: defaultLandingSections.find((s) => s.type === "faq")?.data || {
+          eyebrow: "FAQ",
+          title: "Everything you need",
+          titleAccent: "to know.",
+          subtitle: "Still have questions? Our 24x7 support team replies in under 2 minutes on WhatsApp.",
+        },
+      },
+    ],
+    seo: {
+      title: "Frequently Asked Questions (FAQ) — Teen Patti Stars",
+      description: "Answers on instant UPI payouts, RNG fair play, card variations, welcome bonuses, and table security.",
+    },
+    createdAt: "2026-02-15",
+  },
 ];
 
 export const defaultPosts: PostConfig[] = [
@@ -1014,28 +1061,6 @@ const convertedWpPages: PageConfig[] = (rawWpPages as any[]).map((p, idx) => ({
     description: p.excerpt || `Official details and guide for ${p.title}`,
   },
   sections: [
-    {
-      id: `sec_hero_wp_${idx}`,
-      type: "hero" as const,
-      label: "Page Header",
-      visible: true,
-      data: {
-        eyebrow: "Official Documentation",
-        titlePrefix: `${p.title} - `,
-        titleAccent: "Stars",
-        titleSuffix: "",
-        subtitle: p.excerpt || `Official information and guide for ${p.title}.`,
-        primaryCtaText: "Instant Download",
-        primaryCtaLink: "#download",
-        secondaryCtaText: "Back to Home",
-        secondaryCtaLink: "/",
-        trustText: "50L+ active players",
-        ratingText: "4.8 rating",
-        tableTitle: "Diwali Mega Table",
-        tablePrize: "₹25 Cr",
-        tablePlayers: "4,218 live",
-      },
-    },
     {
       id: `sec_faq_wp_${idx}`,
       type: "faq" as const,
@@ -1205,8 +1230,8 @@ export const defaultSiteConfig: SiteConfig = {
   },
 };
 
-const LOCAL_STORAGE_KEY_PUBLISHED = "tps_site_config_published_v4";
-const LOCAL_STORAGE_KEY_DRAFT = "tps_site_config_draft_v4";
+const LOCAL_STORAGE_KEY_PUBLISHED = "tps_site_config_published_v6";
+const LOCAL_STORAGE_KEY_DRAFT = "tps_site_config_draft_v6";
 const THEME_MODE_KEY = "tps_color_mode";
 
 function safeLocalStorageSet(key: string, value: any) {
@@ -1232,10 +1257,38 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
       if (draft.theme) draft.theme.colorMode = savedThemeMode;
     }
 
+    const deduplicatePages = (pagesList: PageConfig[]) => {
+      const map = new Map<string, PageConfig>();
+      (pagesList || []).forEach((p) => {
+        const clean = (p.slug || "").replace(/^\/+|\/+$/g, "").toLowerCase();
+        // If a page with this slug exists, prefer the one with more customized sections or newer
+        if (!map.has(clean) || p.isHome) {
+          map.set(clean, p);
+        } else {
+          const existing = map.get(clean)!;
+          if ((p.sections?.length || 0) !== (existing.sections?.length || 0)) {
+            // Keep the version that has been edited
+            map.set(clean, p);
+          }
+        }
+      });
+      return Array.from(map.values());
+    };
+
     // ensure pages and posts arrays exist and include all imported items
-    if (!published.pages || published.pages.length < allSitePages.length) {
+    if (!published.pages) {
       published.pages = allSitePages;
+    } else {
+      // Merge missing allSitePages into published.pages without creating duplicates
+      allSitePages.forEach((ap) => {
+        const apClean = ap.slug.replace(/^\/+|\/+$/g, "").toLowerCase();
+        if (!published.pages.some((p: PageConfig) => p.slug.replace(/^\/+|\/+$/g, "").toLowerCase() === apClean)) {
+          published.pages.push(ap);
+        }
+      });
     }
+    published.pages = deduplicatePages(published.pages);
+
     if (!published.posts || published.posts.length < allSitePosts.length) {
       published.posts = allSitePosts;
     }
@@ -1245,9 +1298,18 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
     if (!published.theme.background) published.theme.background = defaultSiteConfig.theme.background;
     if (!published.footer) published.footer = defaultFooterConfig;
 
-    if (!draft.pages || draft.pages.length < allSitePages.length) {
-      draft.pages = allSitePages;
+    if (!draft.pages) {
+      draft.pages = published.pages;
+    } else {
+      allSitePages.forEach((ap) => {
+        const apClean = ap.slug.replace(/^\/+|\/+$/g, "").toLowerCase();
+        if (!draft.pages.some((p: PageConfig) => p.slug.replace(/^\/+|\/+$/g, "").toLowerCase() === apClean)) {
+          draft.pages.push(ap);
+        }
+      });
     }
+    draft.pages = deduplicatePages(draft.pages);
+
     if (!draft.posts || draft.posts.length < allSitePosts.length) {
       draft.posts = allSitePosts;
     }

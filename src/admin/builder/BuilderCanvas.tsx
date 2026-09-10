@@ -117,7 +117,11 @@ export function BuilderCanvas() {
                     >
                       {/* Elementor Floating Action Bar on Hover/Select */}
                       {!previewOnly && (isSelected || isHovered) && (
-                        <div className="absolute left-1/2 top-2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-full border border-emerald-400/40 bg-[#06090c]/95 px-3 py-1 text-xs text-white shadow-2xl backdrop-blur-xl">
+                        <div
+                          className={`absolute left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-full border border-emerald-400/40 bg-[#06090c]/95 px-3 py-1 text-xs text-white shadow-2xl backdrop-blur-xl ${
+                            index === 0 ? "top-16" : "top-2"
+                          }`}
+                        >
                           <span className="font-semibold text-emerald-300">
                             {sec.label}
                           </span>

@@ -89,42 +89,44 @@ export function FAQ({ dynamicData }: { dynamicData?: FAQSectionData }) {
         </div>
 
         {/* View All on FAQ Page banner */}
-        <FadeIn delay={0.08}>
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl">
-            <div className="flex items-center gap-3.5">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <HelpCircle className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-sm font-bold text-white">
-                  Showing 3 of {d.items.length} Essential Questions
+        {d.items && d.items.length > 0 && (
+          <FadeIn delay={0.08}>
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl">
+              <div className="flex items-center gap-3.5">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <HelpCircle className="h-5 w-5" />
                 </div>
-                <p className="text-xs text-white/50">
-                  Explore full answers on legal precedents, payouts, game variants, and VIP rewards.
-                </p>
+                <div>
+                  <div className="text-sm font-bold text-white">
+                    Showing {Math.min(displayedItems.length, d.items.length)} of {d.items.length} Essential Questions
+                  </div>
+                  <p className="text-xs text-white/50">
+                    Explore full answers on legal precedents, payouts, game variants, and VIP rewards.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                {d.items.length > 3 && (
+                  <button
+                    onClick={() => setShowAllInline(!showAllInline)}
+                    className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-semibold text-white/70 hover:bg-white/10 hover:text-white transition-all whitespace-nowrap"
+                  >
+                    {showAllInline ? "Show 3 Only" : `Expand Here (${d.items.length - 3})`}
+                  </button>
+                )}
+
+                <a
+                  href="/faq"
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-500/20 hover:brightness-110 active:scale-95 transition-all whitespace-nowrap"
+                >
+                  <span>View Full FAQ Page</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </a>
               </div>
             </div>
-
-            <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-              {d.items.length > 3 && (
-                <button
-                  onClick={() => setShowAllInline(!showAllInline)}
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-semibold text-white/70 hover:bg-white/10 hover:text-white transition-all whitespace-nowrap"
-                >
-                  {showAllInline ? "Show 3 Only" : `Expand Here (${d.items.length - 3})`}
-                </button>
-              )}
-
-              <a
-                href="/faq"
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-500/20 hover:brightness-110 active:scale-95 transition-all whitespace-nowrap"
-              >
-                <span>View Full FAQ Page</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </a>
-            </div>
-          </div>
-        </FadeIn>
+          </FadeIn>
+        )}
 
         <FadeIn delay={0.1}>
           <div className="mt-12 rounded-2xl border border-white/10 bg-gradient-to-br from-emerald-500/5 via-white/[0.02] to-transparent p-8 text-center">

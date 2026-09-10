@@ -526,6 +526,7 @@ function SectionInspector({
               options={[
                 { label: "Interactive 3D Phone & Cards", value: "3d-mockup" },
                 { label: "Custom Uploaded Image / Banner", value: "custom-image" },
+                { label: "None - Clean Centered Text Only", value: "none" },
               ]}
               onChange={(v) => onUpdateProperty("visualType", v)}
             />
@@ -1386,19 +1387,21 @@ function TextAreaField({
   label,
   value,
   onChange,
+  rows = 5,
 }: {
   label: string;
   value: string;
   onChange: (val: string) => void;
+  rows?: number;
 }) {
   return (
     <div>
-      <label className="text-[11px] font-medium text-white/60">{label}</label>
+      <label className="text-[11px] font-semibold text-white/70">{label}</label>
       <textarea
-        rows={3}
+        rows={rows}
         value={value || ""}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs leading-relaxed text-white placeholder-white/20 transition-all focus:border-emerald-400 focus:bg-black/60 focus:outline-none"
+        className="mt-1.5 w-full min-h-[120px] rounded-xl border border-white/10 bg-black/50 px-3.5 py-3 text-[13px] leading-relaxed text-white placeholder-white/20 transition-all focus:border-emerald-400 focus:bg-black/70 focus:outline-none custom-scrollbar resize-y shadow-inner"
       />
     </div>
   );

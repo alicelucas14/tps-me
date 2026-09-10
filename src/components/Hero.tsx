@@ -22,6 +22,8 @@ export function Hero({ dynamicData }: { dynamicData?: HeroSectionData }) {
     tablePlayers: "4,218 playing now",
   };
 
+  const isNoVisual = d.visualType === "none";
+
   return (
     <section className="relative overflow-hidden pt-32 pb-20 md:pt-40 md:pb-28">
       {/* Ambient background */}
@@ -36,11 +38,11 @@ export function Hero({ dynamicData }: { dynamicData?: HeroSectionData }) {
       </div>
 
       <div className="mx-auto w-full max-w-7xl px-6">
-        <div className="grid items-center gap-16 lg:grid-cols-12">
-          {/* LEFT copy */}
-          <div className="lg:col-span-6">
+        <div className={`grid items-center gap-12 ${isNoVisual ? "grid-cols-1" : "lg:grid-cols-12"}`}>
+          {/* LEFT / CENTER copy */}
+          <div className={isNoVisual ? "mx-auto max-w-4xl text-center" : "lg:col-span-6"}>
             <FadeIn>
-              <Eyebrow className="mb-6">
+              <Eyebrow className={`mb-6 ${isNoVisual ? "mx-auto" : ""}`}>
                 <span className="text-white/80">{d.eyebrow}</span>
               </Eyebrow>
             </FadeIn>
@@ -56,14 +58,14 @@ export function Hero({ dynamicData }: { dynamicData?: HeroSectionData }) {
             </FadeIn>
 
             <FadeIn delay={0.1}>
-              <p className="mt-6 max-w-xl text-lg leading-relaxed text-white/65 md:text-xl">
+              <p className={`mt-6 text-lg leading-relaxed text-white/65 md:text-xl ${isNoVisual ? "mx-auto max-w-2xl" : "max-w-xl"}`}>
                 {d.subtitle}
               </p>
             </FadeIn>
 
             {/* CTAs */}
             <FadeIn delay={0.15}>
-              <div className="mt-9 flex flex-wrap items-center gap-3">
+              <div className={`mt-9 flex flex-wrap items-center gap-3 ${isNoVisual ? "justify-center" : ""}`}>
                 <Button href={d.primaryCtaLink || "#download"} size="lg">
                   <Download className="h-4.5 w-4.5" />
                   {d.primaryCtaText}
@@ -77,7 +79,7 @@ export function Hero({ dynamicData }: { dynamicData?: HeroSectionData }) {
 
             {/* Trust row */}
             <FadeIn delay={0.2}>
-              <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-white/50">
+              <div className={`mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-white/50 ${isNoVisual ? "justify-center" : ""}`}>
                 <div className="flex items-center gap-2">
                   <div className="flex -space-x-1.5">
                     {[0, 1, 2, 3].map((i) => (
@@ -108,34 +110,36 @@ export function Hero({ dynamicData }: { dynamicData?: HeroSectionData }) {
             </FadeIn>
           </div>
 
-          {/* RIGHT visual */}
-          <div className="relative lg:col-span-6">
-            <FadeIn delay={0.1} y={0}>
-              {d.visualType === "custom-image" && d.customImageUrl ? (
-                <div className="relative mx-auto w-full max-w-[560px]">
-                  {/* Ambient Glow */}
-                  <div className="absolute inset-0 -z-10">
-                    <div className="absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/20 blur-[100px] animate-glow" />
-                  </div>
+          {/* RIGHT visual (hidden if visualType === 'none') */}
+          {!isNoVisual && (
+            <div className="relative lg:col-span-6">
+              <FadeIn delay={0.1} y={0}>
+                {d.visualType === "custom-image" && d.customImageUrl ? (
+                  <div className="relative mx-auto w-full max-w-[560px]">
+                    {/* Ambient Glow */}
+                    <div className="absolute inset-0 -z-10">
+                      <div className="absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/20 blur-[100px] animate-glow" />
+                    </div>
 
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 0.8, delay: 0.2 }}
-                    className="overflow-hidden rounded-3xl border border-white/15 bg-black/40 shadow-[0_40px_120px_-30px_rgba(16,185,129,0.4)] backdrop-blur-xl"
-                  >
-                    <img
-                      src={d.customImageUrl}
-                      alt={d.customImageAlt || d.titlePrefix + d.titleAccent}
-                      className="w-full h-auto object-cover max-h-[500px]"
-                    />
-                  </motion.div>
-                </div>
-              ) : (
-                <HeroVisual tableTitle={d.tableTitle} tablePrize={d.tablePrize} tablePlayers={d.tablePlayers} />
-              )}
-            </FadeIn>
-          </div>
+                    <motion.div
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ duration: 0.8, delay: 0.2 }}
+                      className="overflow-hidden rounded-3xl border border-white/15 bg-black/40 shadow-[0_40px_120px_-30px_rgba(16,185,129,0.4)] backdrop-blur-xl"
+                    >
+                      <img
+                        src={d.customImageUrl}
+                        alt={d.customImageAlt || d.titlePrefix + d.titleAccent}
+                        className="w-full h-auto object-cover max-h-[500px]"
+                      />
+                    </motion.div>
+                  </div>
+                ) : (
+                  <HeroVisual tableTitle={d.tableTitle} tablePrize={d.tablePrize} tablePlayers={d.tablePlayers} />
+                )}
+              </FadeIn>
+            </div>
+          )}
         </div>
       </div>
     </section>
