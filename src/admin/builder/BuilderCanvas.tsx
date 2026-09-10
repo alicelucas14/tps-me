@@ -21,6 +21,7 @@ import { Testimonials } from "../../components/Testimonials";
 import { Pricing } from "../../components/Pricing";
 import { FAQ } from "../../components/FAQ";
 import { FinalCTA } from "../../components/FinalCTA";
+import { RichText } from "../../components/RichText";
 import { GlobalBackground } from "../../components/GlobalBackground";
 import { Footer } from "../../components/Footer";
 
@@ -239,6 +240,8 @@ function RenderSectionContent({ section }: { section: SectionConfig }) {
       return <FAQ dynamicData={section.data} />;
     case "final_cta":
       return <FinalCTA dynamicData={section.data} />;
+    case "rich_text":
+      return <RichText dynamicData={section.data} />;
     default:
       return null;
   }

@@ -10,6 +10,7 @@ import { Testimonials } from "./components/Testimonials";
 import { Pricing } from "./components/Pricing";
 import { FAQ } from "./components/FAQ";
 import { FinalCTA } from "./components/FinalCTA";
+import { RichText } from "./components/RichText";
 import { Footer } from "./components/Footer";
 import { BlogView } from "./components/BlogView";
 import { PageView } from "./components/PageView";
@@ -100,7 +101,7 @@ export default function App() {
     };
 
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "tps_site_config_published_v7" || e.key === "tps_site_config_draft_v7") {
+      if (e.key === "tps_site_config_published_v8" || e.key === "tps_site_config_draft_v8") {
         window.location.reload();
       }
     };
@@ -538,6 +539,8 @@ export default function App() {
                   return <FAQ key={sec.id} dynamicData={sec.data} />;
                 case "final_cta":
                   return <FinalCTA key={sec.id} dynamicData={sec.data} />;
+                case "rich_text":
+                  return <RichText key={sec.id} dynamicData={sec.data} />;
                 default:
                   return null;
               }

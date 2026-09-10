@@ -194,6 +194,13 @@ function WidgetsCatalog({ onAdd }: { onAdd: (type: SectionConfig["type"]) => voi
       accent: "gold",
     },
     {
+      type: "rich_text" as const,
+      name: "Rich Text Document",
+      desc: "Clean article headings, lead paragraph, and formatted markdown body",
+      icon: FileText,
+      accent: "emerald",
+    },
+    {
       type: "faq" as const,
       name: "FAQ Accordion",
       desc: "Expandable questions with support box",
@@ -587,6 +594,37 @@ function SectionInspector({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {section.type === "rich_text" && (
+        <div className="space-y-4">
+          <InputField
+            label="Eyebrow Badge"
+            value={d.eyebrow}
+            onChange={(v) => onUpdateProperty("eyebrow", v)}
+          />
+          <InputField
+            label="Document Title"
+            value={d.title}
+            onChange={(v) => onUpdateProperty("title", v)}
+          />
+          <InputField
+            label="Title Accent (Italic)"
+            value={d.titleAccent}
+            onChange={(v) => onUpdateProperty("titleAccent", v)}
+          />
+          <TextAreaField
+            label="Lead Paragraph / Subtitle"
+            value={d.subtitle}
+            onChange={(v) => onUpdateProperty("subtitle", v)}
+          />
+          <TextAreaField
+            label="Article Body (Markdown / Text)"
+            value={d.content}
+            rows={12}
+            onChange={(v) => onUpdateProperty("content", v)}
+          />
         </div>
       )}
 

@@ -167,6 +167,14 @@ export interface AnnouncementSectionData {
   bgColor: "gold" | "emerald" | "ruby";
 }
 
+export interface RichTextSectionData {
+  eyebrow?: string;
+  title: string;
+  titleAccent?: string;
+  subtitle?: string;
+  content: string;
+}
+
 export interface SectionConfig<T = any> {
   id: string;
   type:
@@ -179,7 +187,8 @@ export interface SectionConfig<T = any> {
     | "testimonials"
     | "pricing"
     | "faq"
-    | "final_cta";
+    | "final_cta"
+    | "rich_text";
   label: string;
   visible: boolean;
   data: T;
@@ -1062,27 +1071,17 @@ const convertedWpPages: PageConfig[] = (rawWpPages as any[]).map((p, idx) => ({
   },
   sections: [
     {
-      id: `sec_faq_wp_${idx}`,
-      type: "faq" as const,
-      label: "Information & Details",
+      id: `sec_text_wp_${idx}`,
+      type: "rich_text" as const,
+      label: "Page Document & Content",
       visible: true,
       data: {
-        eyebrow: "Guidelines & Rules",
+        eyebrow: "Official Document",
         title: p.title,
-        titleAccent: "Details",
-        subtitle: p.excerpt || "Read through the details below.",
-        supportTitle: "Need Assistance?",
-        supportSubtitle: "Our support team is available 24/7.",
-        whatsappCta: "WhatsApp VIP Desk",
-        emailCta: "support@teenpattistars.in",
-        items: [
-          {
-            id: `q_wp_${idx}`,
-            q: `Overview: ${p.title}`,
-            a: p.content || `Details for ${p.title}`,
-          },
-        ],
-      },
+        titleAccent: "Overview",
+        subtitle: p.excerpt || `Official details regarding ${p.title}.`,
+        content: p.content || `Content for ${p.title}`,
+      } as RichTextSectionData,
     },
   ],
 }));
@@ -1213,8 +1212,8 @@ export const defaultSiteConfig: SiteConfig = {
   },
 };
 
-const LOCAL_STORAGE_KEY_PUBLISHED = "tps_site_config_published_v7";
-const LOCAL_STORAGE_KEY_DRAFT = "tps_site_config_draft_v7";
+const LOCAL_STORAGE_KEY_PUBLISHED = "tps_site_config_published_v8";
+const LOCAL_STORAGE_KEY_DRAFT = "tps_site_config_draft_v8";
 const THEME_MODE_KEY = "tps_color_mode";
 
 function safeLocalStorageSet(key: string, value: any) {
@@ -1580,66 +1579,17 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
         },
         sections: [
           {
-            id: `sec_hero_${Date.now()}`,
-            type: "hero",
-            label: "Page Header",
+            id: `sec_text_${Date.now()}`,
+            type: "rich_text",
+            label: "Page Document & Content",
             visible: true,
             data: {
-              eyebrow: "Official Documentation",
-              titlePrefix: `${title} - `,
-              titleAccent: "Stars",
-              titleSuffix: "",
-              subtitle: excerpt || `Official guide, transparency details, and terms for ${title}.`,
-              primaryCtaText: "Instant Download",
-              primaryCtaLink: "#download",
-              secondaryCtaText: "Back to Home",
-              secondaryCtaLink: "/",
-              trustText: "50L+ active players",
-              ratingText: "4.8 rating",
-              tableTitle: "Featured Table",
-              tablePrize: "₹10 Lakh",
-              tablePlayers: "Live Now",
-            },
-          },
-          {
-            id: `sec_faq_${Date.now()}`,
-            type: "faq",
-            label: "Page Content & Details",
-            visible: true,
-            data: {
-              eyebrow: "Guidelines & Details",
+              eyebrow: "Official Document",
               title: title,
-              titleAccent: "Information",
-              subtitle: excerpt || "Read through the details below.",
-              supportTitle: "Need Assistance?",
-              supportSubtitle: "Our support team is available 24/7.",
-              whatsappCta: "WhatsApp Support",
-              emailCta: "support@teenpattistars.in",
-              items: [
-                {
-                  id: `q_1_${Date.now()}`,
-                  q: `Overview: ${title}`,
-                  a: content || `Welcome to ${title}. This page was imported from WordPress.`,
-                },
-              ],
-            },
-          },
-          {
-            id: `sec_cta_${Date.now()}`,
-            type: "final_cta",
-            label: "Action Banner",
-            visible: true,
-            data: {
-              badge: "Official Experience",
-              titlePrefix: "Experience India's premier ",
-              titleAccent: "Teen Patti.",
-              titleSuffix: "",
-              subtitle: "Play with verified real players and get instant 30-second payouts.",
-              androidCta: "Download App",
-              iosCta: "Play Online",
-              promoCode: "₹500 BONUS",
-              smsText: "Text STARS to 56161",
-            },
+              titleAccent: "Overview",
+              subtitle: excerpt || `Official details regarding ${title}.`,
+              content: content || `Welcome to ${title}.`,
+            } as RichTextSectionData,
           },
         ],
       };
@@ -1689,66 +1639,17 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
             },
             sections: [
               {
-                id: `sec_hero_${Date.now()}_${idx}`,
-                type: "hero",
-                label: "Page Header",
+                id: `sec_text_${Date.now()}_${idx}`,
+                type: "rich_text",
+                label: "Page Document & Content",
                 visible: true,
                 data: {
-                  eyebrow: "Official Documentation",
-                  titlePrefix: `${p.title} - `,
-                  titleAccent: "Stars",
-                  titleSuffix: "",
-                  subtitle: p.excerpt || `Official information regarding ${p.title}.`,
-                  primaryCtaText: "Instant Download",
-                  primaryCtaLink: "#download",
-                  secondaryCtaText: "Home",
-                  secondaryCtaLink: "/",
-                  trustText: "50L+ players",
-                  ratingText: "4.8 rating",
-                  tableTitle: "Diwali Table",
-                  tablePrize: "₹25 Cr",
-                  tablePlayers: "Live Now",
-                },
-              },
-              {
-                id: `sec_faq_${Date.now()}_${idx}`,
-                type: "faq",
-                label: "Page Content",
-                visible: true,
-                data: {
-                  eyebrow: "Information",
+                  eyebrow: "Official Document",
                   title: p.title,
-                  titleAccent: "Details",
-                  subtitle: p.excerpt || "Read through the details below.",
-                  supportTitle: "Questions?",
-                  supportSubtitle: "Support available 24/7.",
-                  whatsappCta: "Chat Support",
-                  emailCta: "support@teenpattistars.in",
-                  items: [
-                    {
-                      id: `q_${Date.now()}_${idx}`,
-                      q: `Information: ${p.title}`,
-                      a: p.content || `Content for ${p.title}`,
-                    },
-                  ],
-                },
-              },
-              {
-                id: `sec_cta_${Date.now()}_${idx}`,
-                type: "final_cta",
-                label: "Action Banner",
-                visible: true,
-                data: {
-                  badge: "Official Experience",
-                  titlePrefix: "Join India's most refined ",
-                  titleAccent: "card game.",
-                  titleSuffix: "",
-                  subtitle: "Play with verified players and get instant payouts.",
-                  androidCta: "Download App",
-                  iosCta: "Play Online",
-                  promoCode: "₹500 BONUS",
-                  smsText: "Text STARS to 56161",
-                },
+                  titleAccent: "Overview",
+                  subtitle: p.excerpt || `Official details regarding ${p.title}.`,
+                  content: p.content || `Content for ${p.title}`,
+                } as RichTextSectionData,
               },
             ],
           });
