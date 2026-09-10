@@ -85,9 +85,12 @@ export function LeftPanel() {
         {activeTab === "elements" && <WidgetsCatalog onAdd={addSection} />}
         {activeTab === "navigator" && (
           <NavigatorTree
-            sections={draftConfig.sections}
+            sections={draftConfig.sections || []}
             selectedId={selectedSectionId}
-            onSelect={setSelectedSectionId}
+            onSelect={(id) => {
+              setSelectedSectionId(id);
+              setActiveTab("content");
+            }}
             onToggleVisibility={toggleSectionVisibility}
             onMove={moveSection}
             onDuplicate={duplicateSection}
@@ -316,6 +319,15 @@ function NavigatorTree({
 
               {/* Quick Actions */}
               <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100">
+                {/* Inspect Section */}
+                <button
+                  onClick={() => onSelect(sec.id)}
+                  className="grid h-6 w-6 place-items-center rounded hover:bg-emerald-500/20 text-emerald-400"
+                  title="Inspect & Edit Section"
+                >
+                  <Sliders className="h-3 w-3" />
+                </button>
+
                 {/* Reorder Up/Down */}
                 <button
                   onClick={() => onMove(index, index - 1)}
