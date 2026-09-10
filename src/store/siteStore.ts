@@ -2042,9 +2042,11 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
       };
 
       const defaultSample = defaultLandingSections.find((s) => s.type === type);
-      const initialData = defaultSample?.data
-        ? JSON.parse(JSON.stringify(defaultSample.data))
-        : defaultDataMap[type] || {};
+      const sampleData = defaultSample?.data ? JSON.parse(JSON.stringify(defaultSample.data)) : {};
+      const initialData = {
+        ...(defaultDataMap[type] || {}),
+        ...sampleData,
+      };
 
       const labelMap: Record<string, string> = {
         announcement: "Announcement Banner",
