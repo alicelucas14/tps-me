@@ -6,10 +6,9 @@ import { useSiteStore } from "../store/siteStore";
 
 const navLinks = [
   { label: "Home", href: "/" },
-  { label: "How to Play", href: "/how-to-play" },
-  { label: "VIP Club", href: "/vip-club" },
+  { label: "How to Play", href: "/players-guide" },
+  { label: "VIP Club", href: "/loyalty-programs" },
   { label: "Blog & News", href: "/blog" },
-  { label: "FAQ", href: "#faq" },
 ];
 
 export function Navbar() {

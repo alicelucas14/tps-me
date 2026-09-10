@@ -36,7 +36,7 @@ const links: Record<string, FooterLink[]> = {
     { label: "Privacy Policy", href: "/privacy-policy" },
     { label: "Bonus & Promotions", href: "/welcome-bonuses" },
     { label: "About Us", href: "/about-us" },
-    { label: "Player FAQ", href: "#faq" },
+    { label: "Frequently Asked Questions (FAQ)", href: "/faq" },
   ],
 };
 

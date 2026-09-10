@@ -14,6 +14,7 @@ import { Footer } from "./components/Footer";
 import { BlogView } from "./components/BlogView";
 import { PageView } from "./components/PageView";
 import { SitemapView } from "./components/SitemapView";
+import { FAQView } from "./components/FAQView";
 import { GlobalBackground } from "./components/GlobalBackground";
 import { AdminLayout } from "./admin/AdminLayout";
 import { useSiteStore, type PageConfig, type PostConfig } from "./store/siteStore";
@@ -22,7 +23,6 @@ import rawWpPages from "./data/wpPages.json";
 import rawWpPosts from "./data/wpPosts.json";
 
 const SECTION_ANCHORS = new Set([
-  "faq",
   "download",
   "showcase",
   "features",
@@ -174,6 +174,9 @@ export default function App() {
   const resolved = useMemo(() => {
     if (route === "admin") return { type: "admin" as const };
     if (route === "sitemap" || route === "sitemap.xml") return { type: "sitemap" as const };
+    if (route === "faq" || route === "faq.html" || route === "#faq" || clean === "faq" || leaf === "faq") {
+      return { type: "faq" as const };
+    }
     if (route === "blog") return { type: "blog" as const, slug: undefined };
     if (route === "home" || route === "" || route === "/" || route === "#") {
       const homePage = allPages.find((p) => p.isHome) || allPages[0];
@@ -281,6 +284,37 @@ export default function App() {
         title: "Admin Command HQ | Teen Patti Stars",
         description: "Manage Teen Patti Stars website, pages, tournaments, and SEO settings.",
         path: "/#admin",
+      });
+      return;
+    }
+
+    if (resolved.type === "faq") {
+      updateRouteMeta({
+        title: "Frequently Asked Questions (FAQ) | Teen Patti Stars",
+        description: "Find instant answers on instant UPI payouts, RNG fair play, card variations, welcome bonuses, and table security.",
+        path: "/faq",
+        jsonLd: {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: [
+            {
+              "@type": "Question",
+              name: "Is Teen Patti Stars 100% legal to play in India?",
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: "Yes. Game-of-skill tournaments and card games played with strategy are protected under Indian law and distinguished from pure chance gambling by multiple Supreme Court precedents.",
+              },
+            },
+            {
+              "@type": "Question",
+              name: "How fast are UPI withdrawals processed?",
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: "Our automated payout gateway handles instant UPI and IMPS transactions in an average time of under 30 seconds.",
+              },
+            },
+          ],
+        },
       });
       return;
     }
@@ -410,7 +444,15 @@ export default function App() {
         <Navbar />
 
         <main>
-          {resolved.type === "sitemap" ? (
+          {resolved.type === "faq" ? (
+            <FAQView
+              onBack={() => {
+                window.history.pushState(null, "", "/");
+                setRoute("home");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            />
+          ) : resolved.type === "sitemap" ? (
             <SitemapView
               onBack={() => {
                 window.location.hash = "";
