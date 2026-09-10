@@ -1957,22 +1957,26 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
     },
 
     undo: () => {
-      const { history, historyIndex } = get();
+      const { history, historyIndex, selectedSectionId } = get();
       if (historyIndex > 0) {
         const nextIndex = historyIndex - 1;
         const draft = history[nextIndex];
         safeLocalStorageSet(LOCAL_STORAGE_KEY_DRAFT, draft);
-        set({ draftConfig: draft, historyIndex: nextIndex });
+        const isStillValid = draft.sections.some((s) => s.id === selectedSectionId);
+        const validId = isStillValid ? selectedSectionId : draft.sections[0]?.id || null;
+        set({ draftConfig: draft, historyIndex: nextIndex, selectedSectionId: validId });
       }
     },
 
     redo: () => {
-      const { history, historyIndex } = get();
+      const { history, historyIndex, selectedSectionId } = get();
       if (historyIndex < history.length - 1) {
         const nextIndex = historyIndex + 1;
         const draft = history[nextIndex];
         safeLocalStorageSet(LOCAL_STORAGE_KEY_DRAFT, draft);
-        set({ draftConfig: draft, historyIndex: nextIndex });
+        const isStillValid = draft.sections.some((s) => s.id === selectedSectionId);
+        const validId = isStillValid ? selectedSectionId : draft.sections[0]?.id || null;
+        set({ draftConfig: draft, historyIndex: nextIndex, selectedSectionId: validId });
       }
     },
 
