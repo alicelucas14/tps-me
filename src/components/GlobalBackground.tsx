@@ -13,11 +13,17 @@ export function GlobalBackground({
 }: GlobalBackgroundProps) {
   // If background configuration is not set, use default theme mode background
   const bgType = background?.type || "color";
-  const defaultBgColor = colorMode === "light" ? "#f8fafc" : "#05080a";
+  const isLight = colorMode === "light";
+  const defaultBgColor = isLight ? "#f8fafc" : "#05080a";
   const positionClass = isCanvas ? "absolute" : "fixed";
 
   if (bgType === "color") {
-    const color = background?.color || defaultBgColor;
+    let color = background?.color;
+    if (!color || (isLight && (color === "#05080a" || color === "#0a1012" || color === "#000000"))) {
+      color = "#f8fafc";
+    } else if (!isLight && (color === "#f8fafc" || color === "#ffffff")) {
+      color = "#05080a";
+    }
     return (
       <div
         className={`${positionClass} inset-0 pointer-events-none z-0 transition-colors duration-300`}
@@ -27,9 +33,10 @@ export function GlobalBackground({
   }
 
   if (bgType === "gradient") {
-    const gradient =
-      background?.gradient ||
-      "linear-gradient(135deg, #05080a 0%, #062b1e 50%, #05080a 100%)";
+    const gradient = isLight
+      ? "linear-gradient(135deg, #f8fafc 0%, #ecfdf5 50%, #f1f5f9 100%)"
+      : background?.gradient ||
+        "linear-gradient(135deg, #05080a 0%, #062b1e 50%, #05080a 100%)";
     return (
       <div
         className={`${positionClass} inset-0 pointer-events-none z-0 transition-all duration-300`}

@@ -25,6 +25,12 @@ body {
   font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
 }
 
+html[data-theme="light"],
+body[data-theme="light"] {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -37,7 +43,8 @@ html {
 /* ——————————————————————————————————————————————————————
    LIGHT THEME (SCOPED TO PUBLIC LANDING PAGE & CANVAS)
    —————————————————————————————————————————————————————— */
-.theme-light {
+.theme-light,
+[data-theme="light"] {
   color: #0f172a;
 }
 
@@ -119,8 +126,46 @@ html {
 
 .theme-light .border-white\/10,
 .theme-light .border-white\/15,
+.theme-light .border-white\/20,
 .theme-light .border-white\/5 {
   border-color: rgba(0, 0, 0, 0.08);
+}
+
+.theme-light footer,
+[data-theme="light"] footer {
+  background-color: #f1f5f9 !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+.theme-light footer p,
+.theme-light footer a,
+[data-theme="light"] footer p,
+[data-theme="light"] footer a {
+  color: #475569 !important;
+}
+
+.theme-light footer a:hover,
+[data-theme="light"] footer a:hover {
+  color: #059669 !important;
+}
+
+.theme-light footer h4,
+.theme-light footer span.text-white,
+[data-theme="light"] footer h4,
+[data-theme="light"] footer span.text-white {
+  color: #0f172a !important;
+}
+
+.theme-light input,
+[data-theme="light"] input {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+.theme-light input::placeholder,
+[data-theme="light"] input::placeholder {
+  color: #94a3b8 !important;
 }
 
 .theme-light .grid-pattern {
