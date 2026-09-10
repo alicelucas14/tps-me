@@ -100,7 +100,7 @@ export default function App() {
     };
 
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "tps_site_config_published_v6" || e.key === "tps_site_config_draft_v6") {
+      if (e.key === "tps_site_config_published_v7" || e.key === "tps_site_config_draft_v7") {
         window.location.reload();
       }
     };

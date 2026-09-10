@@ -1084,23 +1084,6 @@ const convertedWpPages: PageConfig[] = (rawWpPages as any[]).map((p, idx) => ({
         ],
       },
     },
-    {
-      id: `sec_cta_wp_${idx}`,
-      type: "final_cta" as const,
-      label: "Action Banner",
-      visible: true,
-      data: {
-        badge: "Official Experience",
-        titlePrefix: "Experience India's premier ",
-        titleAccent: "Teen Patti.",
-        titleSuffix: "",
-        subtitle: "Play with verified players and get instant 30-second payouts.",
-        androidCta: "Download App",
-        iosCta: "Play Online",
-        promoCode: "₹500 BONUS",
-        smsText: "Text STARS to 56161",
-      },
-    },
   ],
 }));
 
@@ -1230,8 +1213,8 @@ export const defaultSiteConfig: SiteConfig = {
   },
 };
 
-const LOCAL_STORAGE_KEY_PUBLISHED = "tps_site_config_published_v6";
-const LOCAL_STORAGE_KEY_DRAFT = "tps_site_config_draft_v6";
+const LOCAL_STORAGE_KEY_PUBLISHED = "tps_site_config_published_v7";
+const LOCAL_STORAGE_KEY_DRAFT = "tps_site_config_draft_v7";
 const THEME_MODE_KEY = "tps_color_mode";
 
 function safeLocalStorageSet(key: string, value: any) {
