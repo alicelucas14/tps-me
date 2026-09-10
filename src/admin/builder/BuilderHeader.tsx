@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Monitor,
   Tablet,
@@ -14,10 +15,14 @@ import {
   Sun,
   Moon,
   FileText,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { useSiteStore, type DeviceMode } from "../../store/siteStore";
 
 export function BuilderHeader({ onExit }: { onExit: () => void }) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   const {
     draftConfig,
     deviceMode,
@@ -43,8 +48,46 @@ export function BuilderHeader({ onExit }: { onExit: () => void }) {
     draftConfig.pages.find((p) => p.id === draftConfig.currentPageId) ||
     draftConfig.pages[0];
 
+  if (isCollapsed) {
+    return (
+      <div className="relative z-50 flex h-7 w-full items-center justify-between border-b border-white/10 bg-[#080d10]/90 px-3 text-xs backdrop-blur-md transition-all duration-300">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsCollapsed(false)}
+            className="flex items-center gap-1 rounded bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition-all"
+            title="Expand Toolbar Header"
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+            <span>Expand Header</span>
+          </button>
+          <span className="text-[11px] text-white/40">|</span>
+          <span className="text-[11px] text-white/70 font-medium">
+            Editing: <strong className="text-white">{activePage?.title}</strong>
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={publish}
+            className="flex items-center gap-1 rounded bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-black hover:brightness-110 transition-all"
+          >
+            <UploadCloud className="h-3 w-3" />
+            <span>Publish</span>
+          </button>
+          <button
+            onClick={() => setIsCollapsed(false)}
+            className="p-0.5 text-white/50 hover:text-white"
+            title="Expand Header"
+          >
+            <ChevronDown className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <header className="relative z-50 flex h-14 w-full items-center justify-between border-b border-white/10 bg-[#080d10] px-4 backdrop-blur-xl">
+    <header className="relative z-50 flex h-14 w-full items-center justify-between border-b border-white/10 bg-[#080d10] px-4 backdrop-blur-xl transition-all duration-300">
       {/* LEFT: Branding, Navigation & Page Switcher */}
       <div className="flex items-center gap-3">
         <button
@@ -154,7 +197,7 @@ export function BuilderHeader({ onExit }: { onExit: () => void }) {
         </button>
       </div>
 
-      {/* RIGHT: History, Theme Mode, Reset, and Publish */}
+      {/* RIGHT: History, Theme Mode, Reset, Publish & Collapse Toggle */}
       <div className="flex items-center gap-2">
         {/* Theme Mode Toggle */}
         <button
@@ -228,7 +271,20 @@ export function BuilderHeader({ onExit }: { onExit: () => void }) {
           <UploadCloud className="h-3.5 w-3.5" />
           <span>Publish</span>
         </button>
+
+        <div className="h-4 w-px bg-white/10 mx-0.5" />
+
+        {/* Collapse Toggle Button */}
+        <button
+          onClick={() => setIsCollapsed(true)}
+          className="flex h-8 items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 text-[11px] font-semibold text-white/70 hover:bg-white/10 hover:text-white transition-all"
+          title="Collapse Header Bar"
+        >
+          <ChevronUp className="h-3.5 w-3.5" />
+          <span className="hidden xl:inline">Collapse</span>
+        </button>
       </div>
     </header>
   );
 }
+
