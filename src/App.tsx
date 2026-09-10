@@ -142,6 +142,25 @@ export default function App() {
     const clean = route.replace(/^blog\//, "").replace(/^\/+|\/+$/g, "");
     const leaf = clean.split("/").filter(Boolean).pop() || clean;
 
+    // Common route aliases
+    const ROUTE_ALIASES: Record<string, string> = {
+      "how-to-play": "players-guide",
+      "guide": "players-guide",
+      "rules": "teen-patti-games",
+      "vip-club": "loyalty-programs",
+      "vip": "loyalty-programs",
+      "loyalty": "loyalty-programs",
+      "tournaments": "leaderboards-and-tournaments",
+      "bonuses": "welcome-bonuses",
+      "terms-and-conditions": "privacy-policy",
+      "terms-of-service": "privacy-policy",
+      "responsible-gaming": "players-guide",
+      "games": "our-games",
+    };
+
+    const resolvedClean = ROUTE_ALIASES[clean] || clean;
+    const resolvedLeaf = ROUTE_ALIASES[leaf] || leaf;
+
     // 1. Explicit blog route
     if (route.startsWith("blog/")) {
       const post = allPosts.find((p) => p.slug === clean || p.id === clean || p.slug === leaf || p.id === leaf);
@@ -155,6 +174,8 @@ export default function App() {
       return (
         pSlug === clean ||
         pSlug === leaf ||
+        pSlug === resolvedClean ||
+        pSlug === resolvedLeaf ||
         p.id === clean ||
         p.id === leaf ||
         (clean !== "home" && p.title && p.title.toLowerCase().trim() === clean.toLowerCase().trim())
@@ -172,6 +193,8 @@ export default function App() {
       return (
         pSlug === clean ||
         pSlug === leaf ||
+        pSlug === resolvedClean ||
+        pSlug === resolvedLeaf ||
         p.id === clean ||
         p.id === leaf ||
         (clean !== "home" && p.title && p.title.toLowerCase().trim() === clean.toLowerCase().trim())
@@ -192,16 +215,22 @@ export default function App() {
     // 4. Match against blog posts (direct slug without blog/ prefix)
     const directPost = allPosts.find((p) => {
       const pSlug = (p.slug || "").replace(/^\/+|\/+$/g, "");
-      return pSlug === clean || pSlug === leaf || p.id === clean || p.id === leaf;
+      return (
+        pSlug === clean ||
+        pSlug === leaf ||
+        pSlug === resolvedClean ||
+        pSlug === resolvedLeaf ||
+        p.id === clean ||
+        p.id === leaf
+      );
     });
 
     if (directPost) {
       return { type: "blog-single" as const, post: directPost, slug: directPost.slug };
     }
 
-    // 5. Default Home Page
-    const homePage = allPages.find((p) => p.isHome) || allPages[0];
-    return { type: "home" as const, page: homePage };
+    // 5. If specific non-home path not found, return not-found view instead of home hero
+    return { type: "not-found" as const, slug: clean };
   }, [route, allPages, allPosts]);
 
   // Dynamic SEO & Metadata
@@ -370,6 +399,40 @@ export default function App() {
                 setRoute("home");
               }}
             />
+          ) : resolved.type === "not-found" ? (
+            <div className="min-h-[70vh] flex items-center justify-center px-4 py-20">
+              <div className="max-w-lg text-center rounded-3xl border border-white/10 bg-white/[0.03] p-8 md:p-12 backdrop-blur-xl">
+                <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 text-2xl font-bold mb-6">
+                  404
+                </div>
+                <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">Page Not Found</h2>
+                <p className="text-sm text-white/60 mb-8 leading-relaxed">
+                  The page <code className="text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-500/10 font-mono">/{resolved.slug}</code> doesn't exist or has moved.
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    onClick={() => {
+                      window.history.pushState(null, "", "/");
+                      setRoute("home");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="rounded-full bg-gradient-to-r from-[#f5c242] to-[#e6a817] px-6 py-2.5 text-xs font-bold uppercase tracking-wider text-black shadow-lg shadow-amber-500/20 hover:scale-105 transition-all"
+                  >
+                    Back to Home
+                  </button>
+                  <button
+                    onClick={() => {
+                      window.history.pushState(null, "", "/blog");
+                      setRoute("blog");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="rounded-full border border-white/15 bg-white/5 px-6 py-2.5 text-xs font-semibold text-white/80 hover:bg-white/10 transition-all"
+                  >
+                    Browse Blog
+                  </button>
+                </div>
+              </div>
+            </div>
           ) : (
             sectionsToRender.map((sec) => {
               if (!sec.visible) return null;

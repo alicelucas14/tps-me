@@ -16,27 +16,27 @@ interface FooterLink {
 const links: Record<string, FooterLink[]> = {
   Product: [
     { label: "Instant Download", href: "#download" },
-    { label: "Tournaments", href: "/how-to-play" },
-    { label: "VIP Royal Club", href: "/vip-club" },
-    { label: "Private Tables", href: "#download" },
+    { label: "Our Games", href: "/our-games" },
+    { label: "VIP Loyalty Club", href: "/loyalty-programs" },
+    { label: "Tournaments", href: "/leaderboards-and-tournaments" },
   ],
   Resources: [
-    { label: "How to Play Guide", href: "/how-to-play" },
+    { label: "Player's Guide", href: "/players-guide" },
     { label: "Blog & Chronicles", href: "/blog" },
-    { label: "Tournament Rules", href: "/how-to-play" },
+    { label: "Teen Patti Variations", href: "/teen-patti-games" },
     { label: "HTML Sitemap", href: "/sitemap" },
   ],
   "AI & Search": [
-    { label: "XML Sitemap (sitemap.xml)", href: "/sitemap.xml", target: "_blank" },
+    { label: "XML Sitemap", href: "/sitemap.xml", target: "_blank" },
     { label: "AI Search Guide (llms.txt)", href: "/llms.txt", target: "_blank" },
     { label: "Robots Policy (robots.txt)", href: "/robots.txt", target: "_blank" },
-    { label: "Help Center", href: "/how-to-play" },
+    { label: "Contact Us", href: "/contact-us" },
   ],
   Legal: [
-    { label: "Terms of Service", href: "/terms-and-conditions" },
     { label: "Privacy Policy", href: "/privacy-policy" },
-    { label: "Fair Play & RNG", href: "/responsible-gaming" },
-    { label: "Responsible Gaming", href: "/responsible-gaming" },
+    { label: "Bonus & Promotions", href: "/welcome-bonuses" },
+    { label: "About Us", href: "/about-us" },
+    { label: "Player FAQ", href: "#faq" },
   ],
 };
 
