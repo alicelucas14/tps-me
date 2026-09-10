@@ -29,6 +29,7 @@ import {
   GRADIENT_PRESETS,
   IMAGE_PRESETS,
 } from "../../utils/backgroundPresets";
+import { MarkdownEditor } from "../components/MarkdownEditor";
 
 export function LeftPanel() {
   const {
@@ -1433,15 +1434,12 @@ function TextAreaField({
   rows?: number;
 }) {
   return (
-    <div>
-      <label className="text-[11px] font-semibold text-white/70">{label}</label>
-      <textarea
-        rows={rows}
-        value={value || ""}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-1.5 w-full min-h-[120px] rounded-xl border border-white/10 bg-black/50 px-3.5 py-3 text-[13px] leading-relaxed text-white placeholder-white/20 transition-all focus:border-emerald-400 focus:bg-black/70 focus:outline-none custom-scrollbar resize-y shadow-inner"
-      />
-    </div>
+    <MarkdownEditor
+      label={label}
+      value={value}
+      onChange={onChange}
+      rows={rows}
+    />
   );
 }
 

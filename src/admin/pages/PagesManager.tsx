@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useSiteStore, type PageConfig } from "../../store/siteStore";
 import { WordPressImporterModal } from "./WordPressImporterModal";
+import { MarkdownEditor } from "../components/MarkdownEditor";
 
 export function PagesManager({ onEditWithBuilder }: { onEditWithBuilder: (pageId: string) => void }) {
   const { draftConfig, createPage, deletePage, updatePageMeta } = useSiteStore();
@@ -407,15 +408,12 @@ export function PagesManager({ onEditWithBuilder }: { onEditWithBuilder: (pageId
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-white/70">
-                  Full Page Markdown Content & Body Text
-                </label>
-                <textarea
-                  rows={12}
+                <MarkdownEditor
+                  label="Full Page Markdown Content & Body Text"
                   value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  placeholder="Enter full page markdown content here..."
-                  className="mt-1 w-full min-h-[220px] rounded-xl border border-white/10 bg-black/60 p-4 font-mono text-xs leading-relaxed text-emerald-300 focus:border-emerald-400 focus:outline-none custom-scrollbar resize-y"
+                  onChange={setEditContent}
+                  rows={12}
+                  minHeight="min-h-[260px]"
                 />
               </div>
             </div>
