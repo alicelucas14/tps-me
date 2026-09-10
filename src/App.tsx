@@ -21,14 +21,30 @@ import { updateRouteMeta } from "./utils/seoHelper";
 import rawWpPages from "./data/wpPages.json";
 import rawWpPosts from "./data/wpPosts.json";
 
+const SECTION_ANCHORS = new Set([
+  "faq",
+  "download",
+  "showcase",
+  "features",
+  "pricing",
+  "testimonials",
+  "benefits",
+  "social",
+]);
+
 function getActiveRouteString(): string {
   if (typeof window === "undefined") return "home";
 
   const rawHash = window.location.hash.replace(/^#\/?|\/+$/g, "");
   const pathname = window.location.pathname.replace(/^\/+|\/+$/g, "");
 
+  // If hash is an in-page section anchor, it's not a SPA route
+  if (SECTION_ANCHORS.has(rawHash.toLowerCase())) {
+    return pathname && pathname !== "/" ? pathname : "home";
+  }
+
   // If user visits an old hash route like /#/privacy-policy, clean it up to /privacy-policy
-  if (rawHash && rawHash !== "/") {
+  if (window.location.hash.startsWith("#/") && rawHash && rawHash !== "/") {
     const cleanPath = `/${rawHash}`;
     window.history.replaceState(null, "", cleanPath);
     return rawHash;
@@ -39,6 +55,9 @@ function getActiveRouteString(): string {
   }
 
   if (pathname && pathname !== "/") {
+    if (SECTION_ANCHORS.has(pathname.toLowerCase())) {
+      return "home";
+    }
     return pathname;
   }
 
@@ -88,6 +107,28 @@ export default function App() {
 
       // In-page section anchors like #download or #faq
       if (href.startsWith("#") && !href.startsWith("#/")) {
+        const targetId = href.replace(/^#/, "");
+        const currentActive = getActiveRouteString();
+        
+        // If we're on an internal page like /blog or /players-guide, return to home and scroll to section
+        if (currentActive !== "home" && currentActive !== "") {
+          e.preventDefault();
+          window.history.pushState(null, "", `/#${targetId}`);
+          setRoute("home");
+          setTimeout(() => {
+            const el = document.getElementById(targetId);
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth" });
+            }
+          }, 150);
+        } else {
+          // Already on home, scroll smoothly to element
+          const el = document.getElementById(targetId);
+          if (el) {
+            e.preventDefault();
+            el.scrollIntoView({ behavior: "smooth" });
+          }
+        }
         return;
       }
 
