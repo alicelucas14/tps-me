@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, Component, type ReactNode } from "react";
 import {
   Edit3,
   ChevronUp,
@@ -8,6 +8,30 @@ import {
   Plus,
 } from "lucide-react";
 import { useSiteStore, type SectionConfig } from "../../store/siteStore";
+
+class SectionErrorBoundary extends Component<{ children: ReactNode; sectionLabel: string }, { hasError: boolean }> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("Section render error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="my-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-center text-rose-300">
+          <p className="text-sm font-bold">Failed to render section ({this.props.sectionLabel})</p>
+          <p className="text-xs text-white/60 mt-1">Check section inspector settings or delete and re-add.</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Components
 import { Navbar } from "../../components/Navbar";
@@ -190,7 +214,9 @@ export function BuilderCanvas() {
                       )}
 
                       {/* Render Section Component */}
-                      <RenderSectionContent section={sec} />
+                      <SectionErrorBoundary sectionLabel={sec.label}>
+                        <RenderSectionContent section={sec} />
+                      </SectionErrorBoundary>
                     </div>
                   );
                 })}

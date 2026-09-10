@@ -1904,32 +1904,169 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
     addSection: (type) => {
       const { draftConfig } = get();
       const newId = `sec_${Date.now()}`;
-      let newSection: SectionConfig;
 
-      if (type === "announcement") {
-        newSection = {
-          id: newId,
-          type: "announcement",
-          label: "Announcement Banner",
-          visible: true,
-          data: {
-            text: "🎉 Flash Weekend: 100% Instant Deposit Match up to ₹10,000 using code STARS100!",
-            badge: "NEW",
-            linkText: "Claim Now",
-            linkUrl: "#download",
-            bgColor: "gold",
-          } as AnnouncementSectionData,
-        };
-      } else {
-        const defaultSample = defaultLandingSections.find((s) => s.type === type);
-        newSection = {
-          id: newId,
-          type,
-          label: `${defaultSample?.label || type} (New)`,
-          visible: true,
-          data: defaultSample ? JSON.parse(JSON.stringify(defaultSample.data)) : {},
-        };
-      }
+      const defaultDataMap: Record<string, any> = {
+        announcement: {
+          text: "🎉 Special Bonus: 100% Instant Deposit Match up to ₹10,000!",
+          badge: "NEW",
+          linkText: "Claim Bonus",
+          linkUrl: "#download",
+          bgColor: "gold",
+        },
+        hero: {
+          eyebrow: "Diwali Edition · ₹25 Cr Prize Pool Live",
+          titlePrefix: "India's most ",
+          titleAccent: "refined",
+          titleSuffix: " Teen Patti experience.",
+          subtitle: "Play with 50 lakh+ verified players. Instant UPI payouts in under 30 seconds. Fair-play RNG certified.",
+          primaryCtaText: "Download Free · Get ₹500",
+          primaryCtaLink: "#download",
+          secondaryCtaText: "Watch 45-sec Tour",
+          secondaryCtaLink: "#showcase",
+          trustText: "50L+ players already in",
+          ratingText: "4.8 · 2.1L reviews",
+          tableTitle: "Diwali Mega Table",
+          tablePrize: "₹25 Cr",
+          tablePlayers: "4,218 playing now",
+        },
+        social_proof: {
+          eyebrow: "Featured in & trusted by India's leading publications",
+          logos: ["TechCrunch", "YourStory", "Economic Times", "Inc42", "Business Standard"],
+          stats: [
+            { id: "s1", value: "50L+", label: "Verified Players" },
+            { id: "s2", value: "₹240Cr", label: "Paid Out in 2025" },
+            { id: "s3", value: "<30s", label: "Avg UPI Withdrawal" },
+            { id: "s4", value: "4.8★", label: "Play Store Rating" },
+          ],
+        },
+        features: {
+          eyebrow: "Why Choose Us",
+          title: "Built for players who",
+          titleAccent: "expect perfection.",
+          subtitle: "Every feature engineered for the serious Teen Patti enthusiast.",
+          items: [
+            { id: "f1", icon: "Zap", title: "Lightning Fast Tables", desc: "Sub-200ms response times on every deal.", accent: "emerald" },
+            { id: "f2", icon: "Banknote", title: "Instant UPI Payouts", desc: "Winnings to your bank in under 30 seconds.", accent: "gold" },
+            { id: "f3", icon: "ShieldCheck", title: "RNG Certified", desc: "Audited by iTech Labs. Zero bots.", accent: "emerald" },
+          ],
+        },
+        showcase: {
+          eyebrow: "The Experience",
+          title: "A table that feels",
+          titleAccent: "alive.",
+          subtitle: "Immersive 3D felts, live dealer expressions, and real-time chip animations.",
+          potAmount: "₹ 1,24,500",
+          activeTablesCount: "4,218 tables",
+          features: [
+            { id: "sf1", icon: "Trophy", title: "200+ daily tournaments", desc: "Micro-events to ₹1Cr Sunday Showdowns." },
+            { id: "sf2", icon: "Users2", title: "Private tables with friends", desc: "Create a table, share a link, play with your circle." },
+          ],
+        },
+        benefits: {
+          items: [
+            {
+              id: "b1",
+              icon: "ShieldCheck",
+              kicker: "100% Legal & Safe",
+              title: "Licensed, regulated, and audited.",
+              desc: "Operates under a Curacao gaming license with iTech Labs RNG certification.",
+              bullets: ["iTech Labs RNG Certificate", "SSL 256-bit encryption", "Aadhaar KYC under 60 seconds"],
+              stat1Label: "Audit frequency",
+              stat1Value: "Weekly",
+              stat2Label: "RNG seed",
+              stat2Value: "Quantum",
+              visual: "security",
+            },
+          ],
+        },
+        testimonials: {
+          eyebrow: "Player Reviews",
+          title: "Loved by",
+          titleAccent: "50 lakh players.",
+          subtitle: "Real stories from real players across India.",
+          items: [
+            {
+              id: "t1",
+              name: "Arjun Mehta",
+              role: "Mumbai · Verified Player",
+              quote: "The only app that feels genuinely premium. Instant payouts every time.",
+              avatar: "AM",
+              rating: 5,
+              color: "from-emerald-400 to-teal-500",
+              badge: "Royal VIP",
+            },
+          ],
+        },
+        pricing: {
+          eyebrow: "Membership Tiers",
+          title: "Play at",
+          titleAccent: "your level.",
+          subtitle: "Start free. Upgrade when you are ready.",
+          bannerText: "First month bonus credits on all deposit plans.",
+          items: [
+            { id: "p1", name: "Classic", price: "Free", tagline: "Perfect to start", icon: "Zap", featured: false, cta: "Play Free", perks: ["Access to tables", "Daily rewards"], limits: [] },
+            { id: "p2", name: "Royal", price: "₹2,999", period: "/mo", tagline: "For competitors", icon: "Crown", featured: true, cta: "Go Royal", perks: ["Instant payouts", "VIP Manager"], limits: [] },
+          ],
+        },
+        faq: {
+          eyebrow: "FAQ",
+          title: "Frequently Asked",
+          titleAccent: "Questions.",
+          subtitle: "Got questions? We have quick answers.",
+          supportTitle: "24x7 Support Team",
+          supportSubtitle: "Our support team is online round the clock.",
+          whatsappCta: "Chat on WhatsApp",
+          emailCta: "support@teenpattistars.me",
+          items: [
+            { id: "q1", q: "Is Teen Patti Stars legal?", a: "Yes, Teen Patti is a game of skill legal across most Indian states." },
+          ],
+        },
+        rich_text: {
+          eyebrow: "Article Document",
+          title: "Document Title",
+          titleAccent: "Overview",
+          subtitle: "Lead overview paragraph summarizing the content.",
+          content: "## 1. Introduction\n\nWrite your document or page content here using markdown formatting.\n\n- Add bullet lists\n- Add links and images\n- Use **bold** or *italic* text.",
+        },
+        final_cta: {
+          badge: "Diwali Special Offer",
+          titlePrefix: "Ready to ",
+          titleAccent: "win big?",
+          titleSuffix: " Join 50L+ players today.",
+          subtitle: "Download the official Teen Patti Stars APK for Android & iOS.",
+          androidCta: "Download Android APK",
+          iosCta: "Download iOS App",
+          promoCode: "STARS100",
+          smsText: "Get Download Link via SMS",
+        },
+      };
+
+      const defaultSample = defaultLandingSections.find((s) => s.type === type);
+      const initialData = defaultSample?.data
+        ? JSON.parse(JSON.stringify(defaultSample.data))
+        : defaultDataMap[type] || {};
+
+      const labelMap: Record<string, string> = {
+        announcement: "Announcement Banner",
+        hero: "Hero Header",
+        social_proof: "Social Proof & Stats",
+        features: "Features Grid",
+        showcase: "Live Table Showcase",
+        benefits: "Benefits & Security",
+        testimonials: "Player Reviews",
+        pricing: "VIP & Pricing Tiers",
+        rich_text: "Rich Text Document",
+        faq: "FAQ Accordion",
+        final_cta: "Final App CTA",
+      };
+
+      const newSection: SectionConfig = {
+        id: newId,
+        type,
+        label: labelMap[type] || defaultSample?.label || `${type} Section`,
+        visible: true,
+        data: initialData,
+      };
 
       const newSections = [...draftConfig.sections, newSection];
       const newPages = draftConfig.pages.map((p) =>

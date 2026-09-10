@@ -3,12 +3,12 @@ import { MarkdownRenderer } from "./MarkdownRenderer";
 import type { RichTextSectionData } from "../store/siteStore";
 
 export function RichText({ dynamicData }: { dynamicData?: RichTextSectionData }) {
-  const d: RichTextSectionData = dynamicData || {
-    eyebrow: "Official Documentation",
-    title: "About Us",
-    titleAccent: "Details",
-    subtitle: "Learn more about our platform, mission, and compliance.",
-    content: "Content goes here.",
+  const d: RichTextSectionData = {
+    eyebrow: dynamicData?.eyebrow ?? "Official Documentation",
+    title: dynamicData?.title || "Article Document",
+    titleAccent: dynamicData?.titleAccent || "Overview",
+    subtitle: dynamicData?.subtitle || "Read official details and guidelines.",
+    content: dynamicData?.content || "## Article Content\n\nContent goes here.",
   };
 
   return (
