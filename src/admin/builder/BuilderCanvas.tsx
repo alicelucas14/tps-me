@@ -117,9 +117,40 @@ export function BuilderCanvas() {
                   const isSelected = sec.id === selectedSectionId;
                   const isHovered = sec.id === hoveredSectionId;
 
+                  const topo = sec.style?.typography || {};
+
+                  const sectionInlineStyle: React.CSSProperties = {
+                    marginTop: sec.style?.marginTop ? (isNaN(Number(sec.style.marginTop)) ? sec.style.marginTop : `${sec.style.marginTop}px`) : undefined,
+                    marginRight: sec.style?.marginRight ? (isNaN(Number(sec.style.marginRight)) ? sec.style.marginRight : `${sec.style.marginRight}px`) : undefined,
+                    marginBottom: sec.style?.marginBottom ? (isNaN(Number(sec.style.marginBottom)) ? sec.style.marginBottom : `${sec.style.marginBottom}px`) : undefined,
+                    marginLeft: sec.style?.marginLeft ? (isNaN(Number(sec.style.marginLeft)) ? sec.style.marginLeft : `${sec.style.marginLeft}px`) : undefined,
+
+                    paddingTop: sec.style?.paddingTop ? (isNaN(Number(sec.style.paddingTop)) ? sec.style.paddingTop : `${sec.style.paddingTop}px`) : undefined,
+                    paddingRight: sec.style?.paddingRight ? (isNaN(Number(sec.style.paddingRight)) ? sec.style.paddingRight : `${sec.style.paddingRight}px`) : undefined,
+                    paddingBottom: sec.style?.paddingBottom ? (isNaN(Number(sec.style.paddingBottom)) ? sec.style.paddingBottom : `${sec.style.paddingBottom}px`) : undefined,
+                    paddingLeft: sec.style?.paddingLeft ? (isNaN(Number(sec.style.paddingLeft)) ? sec.style.paddingLeft : `${sec.style.paddingLeft}px`) : undefined,
+
+                    width: sec.style?.width === "full" ? "100%" : sec.style?.width === "inline" ? "fit-content" : undefined,
+                    alignSelf: sec.style?.alignSelf,
+                    position: sec.style?.position !== "default" ? (sec.style?.position as any) : undefined,
+                    zIndex: sec.style?.zIndex ? Number(sec.style.zIndex) : undefined,
+
+                    fontFamily: topo.fontFamily !== "default" ? topo.fontFamily : undefined,
+                    fontSize: topo.fontSize ? `${topo.fontSize}px` : undefined,
+                    fontWeight: topo.fontWeight !== "default" ? topo.fontWeight : undefined,
+                    textTransform: topo.transform !== "default" ? (topo.transform as any) : undefined,
+                    fontStyle: topo.style !== "default" ? topo.style : undefined,
+                    textDecoration: topo.decoration !== "default" ? topo.decoration : undefined,
+                    lineHeight: topo.lineHeight ? `${topo.lineHeight}px` : undefined,
+                    letterSpacing: topo.letterSpacing ? `${topo.letterSpacing}px` : undefined,
+                    wordSpacing: topo.wordSpacing ? `${topo.wordSpacing}px` : undefined,
+                  };
+
                   return (
                     <div
                       key={sec.id}
+                      id={sec.style?.customId}
+                      style={sectionInlineStyle}
                       onMouseEnter={() => setHoveredSectionId(sec.id)}
                       onMouseLeave={() => setHoveredSectionId(null)}
                       onClick={(e) => {
@@ -138,7 +169,7 @@ export function BuilderCanvas() {
                             ? "outline outline-1 outline-emerald-400/40 outline-offset-[-1px]"
                             : ""
                           : ""
-                      }`}
+                      } ${sec.style?.alignment ? `text-${sec.style.alignment}` : ""} ${sec.style?.customClass || ""}`}
                     >
                       {/* Elementor Floating Action Bar on Hover/Select */}
                       {!previewOnly && (isSelected || isHovered) && (

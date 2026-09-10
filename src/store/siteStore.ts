@@ -175,6 +175,50 @@ export interface RichTextSectionData {
   content: string;
 }
 
+export interface TypographyConfig {
+  fontFamily?: string;
+  fontSize?: string;
+  fontWeight?: string;
+  transform?: "default" | "uppercase" | "lowercase" | "capitalize" | "normal";
+  style?: "default" | "normal" | "italic" | "oblique";
+  decoration?: "default" | "underline" | "overline" | "line-through" | "none";
+  lineHeight?: string;
+  letterSpacing?: string;
+  wordSpacing?: string;
+}
+
+export interface SectionStyleConfig {
+  alignment?: "left" | "center" | "right" | "justify";
+  paddingY?: "py-8" | "py-12" | "py-16" | "py-24";
+  colorScheme?: "emerald" | "gold" | "sapphire" | "ruby" | "slate";
+  animation?: "fadeIn" | "slideUp" | "zoomIn" | "none";
+  customId?: string;
+  customClass?: string;
+
+  // Elementor Typography Config
+  typography?: TypographyConfig;
+
+  // Elementor Advanced Layout Properties
+  marginTop?: string;
+  marginRight?: string;
+  marginBottom?: string;
+  marginLeft?: string;
+  marginLinked?: boolean;
+
+  paddingTop?: string;
+  paddingRight?: string;
+  paddingBottom?: string;
+  paddingLeft?: string;
+  paddingLinked?: boolean;
+
+  width?: "default" | "full" | "inline" | "custom";
+  alignSelf?: "start" | "center" | "end" | "stretch";
+  order?: "start" | "end" | "custom";
+  size?: "none" | "grow" | "shrink" | "custom";
+  position?: "default" | "absolute" | "fixed";
+  zIndex?: string;
+}
+
 export interface SectionConfig<T = any> {
   id: string;
   type:
@@ -192,6 +236,7 @@ export interface SectionConfig<T = any> {
   label: string;
   visible: boolean;
   data: T;
+  style?: SectionStyleConfig;
   customCss?: string;
 }
 
@@ -1345,6 +1390,7 @@ interface SiteStoreState {
   setColorMode: (mode: "dark" | "light") => void;
   updateSectionData: <T = any>(sectionId: string, updater: (prev: T) => T) => void;
   updateSectionProperty: (sectionId: string, key: string, value: any) => void;
+  updateSectionStyle: (sectionId: string, styleUpdater: (prev: SectionStyleConfig) => SectionStyleConfig) => void;
   updateSectionLabel: (sectionId: string, label: string) => void;
   toggleSectionVisibility: (sectionId: string) => void;
   moveSection: (fromIndex: number, toIndex: number) => void;
@@ -1831,6 +1877,22 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
         p.id === draftConfig.currentPageId ? { ...p, sections: newSections } : p
       );
 
+      pushHistory({ ...draftConfig, sections: newSections, pages: newPages });
+    },
+
+    updateSectionStyle: (sectionId, styleUpdater) => {
+      const { draftConfig } = get();
+      const newSections = draftConfig.sections.map((sec) => {
+        if (sec.id === sectionId) {
+          const currentStyle = sec.style || {};
+          const nextStyle = styleUpdater(currentStyle);
+          return { ...sec, style: nextStyle };
+        }
+        return sec;
+      });
+      const newPages = draftConfig.pages.map((p) =>
+        p.id === draftConfig.currentPageId ? { ...p, sections: newSections } : p
+      );
       pushHistory({ ...draftConfig, sections: newSections, pages: newPages });
     },
 
