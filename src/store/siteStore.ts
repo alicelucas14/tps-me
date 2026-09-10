@@ -1085,6 +1085,16 @@ export const defaultSiteConfig: SiteConfig = {
 
 const LOCAL_STORAGE_KEY_PUBLISHED = "tps_site_config_published_v4";
 const LOCAL_STORAGE_KEY_DRAFT = "tps_site_config_draft_v4";
+const THEME_MODE_KEY = "tps_color_mode";
+
+function safeLocalStorageSet(key: string, value: any) {
+  try {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(key, typeof value === "string" ? value : JSON.stringify(value));
+  } catch {
+    // Gracefully ignore QuotaExceededError or private browsing
+  }
+}
 
 function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
   try {
@@ -1092,6 +1102,13 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
     const draftStr = localStorage.getItem(LOCAL_STORAGE_KEY_DRAFT);
     let published = publishedStr ? JSON.parse(publishedStr) : defaultSiteConfig;
     let draft = draftStr ? JSON.parse(draftStr) : published;
+
+    // Load lightweight saved theme preference if present
+    const savedThemeMode = localStorage.getItem(THEME_MODE_KEY) as "dark" | "light" | null;
+    if (savedThemeMode) {
+      if (published.theme) published.theme.colorMode = savedThemeMode;
+      if (draft.theme) draft.theme.colorMode = savedThemeMode;
+    }
 
     // ensure pages and posts arrays exist and include all imported items
     if (!published.pages || published.pages.length < allSitePages.length) {
@@ -1663,7 +1680,7 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
 
     toggleColorMode: () => {
       const { draftConfig, publishedConfig } = get();
-      const currentMode = draftConfig.theme.colorMode || "dark";
+      const currentMode = draftConfig.theme?.colorMode || "dark";
       const nextMode: "dark" | "light" = currentMode === "dark" ? "light" : "dark";
       const newDraft: SiteConfig = {
         ...draftConfig,
@@ -1679,8 +1696,9 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
           colorMode: nextMode,
         },
       };
-      localStorage.setItem(LOCAL_STORAGE_KEY_PUBLISHED, JSON.stringify(newPublished));
-      localStorage.setItem(LOCAL_STORAGE_KEY_DRAFT, JSON.stringify(newDraft));
+      safeLocalStorageSet(THEME_MODE_KEY, nextMode);
+      safeLocalStorageSet(LOCAL_STORAGE_KEY_PUBLISHED, newPublished);
+      safeLocalStorageSet(LOCAL_STORAGE_KEY_DRAFT, newDraft);
       set({ draftConfig: newDraft, publishedConfig: newPublished });
     },
 
@@ -1700,8 +1718,9 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
           colorMode: mode,
         },
       };
-      localStorage.setItem(LOCAL_STORAGE_KEY_PUBLISHED, JSON.stringify(newPublished));
-      localStorage.setItem(LOCAL_STORAGE_KEY_DRAFT, JSON.stringify(newDraft));
+      safeLocalStorageSet(THEME_MODE_KEY, mode);
+      safeLocalStorageSet(LOCAL_STORAGE_KEY_PUBLISHED, newPublished);
+      safeLocalStorageSet(LOCAL_STORAGE_KEY_DRAFT, newDraft);
       set({ draftConfig: newDraft, publishedConfig: newPublished });
     },
 
@@ -1864,7 +1883,7 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
       if (historyIndex > 0) {
         const nextIndex = historyIndex - 1;
         const draft = history[nextIndex];
-        localStorage.setItem(LOCAL_STORAGE_KEY_DRAFT, JSON.stringify(draft));
+        safeLocalStorageSet(LOCAL_STORAGE_KEY_DRAFT, draft);
         set({ draftConfig: draft, historyIndex: nextIndex });
       }
     },
@@ -1874,20 +1893,20 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
       if (historyIndex < history.length - 1) {
         const nextIndex = historyIndex + 1;
         const draft = history[nextIndex];
-        localStorage.setItem(LOCAL_STORAGE_KEY_DRAFT, JSON.stringify(draft));
+        safeLocalStorageSet(LOCAL_STORAGE_KEY_DRAFT, draft);
         set({ draftConfig: draft, historyIndex: nextIndex });
       }
     },
 
     publish: () => {
       const { draftConfig } = get();
-      localStorage.setItem(LOCAL_STORAGE_KEY_PUBLISHED, JSON.stringify(draftConfig));
+      safeLocalStorageSet(LOCAL_STORAGE_KEY_PUBLISHED, draftConfig);
       set({ publishedConfig: draftConfig, hasUnsavedChanges: false });
     },
 
     discardDraft: () => {
       const { publishedConfig } = get();
-      localStorage.setItem(LOCAL_STORAGE_KEY_DRAFT, JSON.stringify(publishedConfig));
+      safeLocalStorageSet(LOCAL_STORAGE_KEY_DRAFT, publishedConfig);
       set({
         draftConfig: publishedConfig,
         history: [publishedConfig],
@@ -1897,8 +1916,8 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
     },
 
     resetToDefaults: () => {
-      localStorage.setItem(LOCAL_STORAGE_KEY_PUBLISHED, JSON.stringify(defaultSiteConfig));
-      localStorage.setItem(LOCAL_STORAGE_KEY_DRAFT, JSON.stringify(defaultSiteConfig));
+      safeLocalStorageSet(LOCAL_STORAGE_KEY_PUBLISHED, defaultSiteConfig);
+      safeLocalStorageSet(LOCAL_STORAGE_KEY_DRAFT, defaultSiteConfig);
       set({
         publishedConfig: defaultSiteConfig,
         draftConfig: defaultSiteConfig,
@@ -1911,7 +1930,7 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
 
     importConfig: (config) => {
       pushHistory(config);
-      localStorage.setItem(LOCAL_STORAGE_KEY_PUBLISHED, JSON.stringify(config));
+      safeLocalStorageSet(LOCAL_STORAGE_KEY_PUBLISHED, config);
       set({ publishedConfig: config, hasUnsavedChanges: false });
     },
   };
