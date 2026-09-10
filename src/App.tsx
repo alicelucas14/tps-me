@@ -174,17 +174,18 @@ export default function App() {
   const resolved = useMemo(() => {
     if (route === "admin") return { type: "admin" as const };
     if (route === "sitemap" || route === "sitemap.xml") return { type: "sitemap" as const };
+
+    const clean = (route || "").replace(/^blog\//, "").replace(/^#\/?|\/+$/g, "").replace(/^\/+|\/+$/g, "");
+    const leaf = clean.split("/").filter(Boolean).pop() || clean;
+
     if (route === "faq" || route === "faq.html" || route === "#faq" || clean === "faq" || leaf === "faq") {
       return { type: "faq" as const };
     }
     if (route === "blog") return { type: "blog" as const, slug: undefined };
-    if (route === "home" || route === "" || route === "/" || route === "#") {
+    if (route === "home" || route === "" || route === "/" || route === "#" || clean === "" || clean === "home") {
       const homePage = allPages.find((p) => p.isHome) || allPages[0];
       return { type: "home" as const, page: homePage };
     }
-
-    const clean = route.replace(/^blog\//, "").replace(/^\/+|\/+$/g, "");
-    const leaf = clean.split("/").filter(Boolean).pop() || clean;
 
     // Common route aliases
     const ROUTE_ALIASES: Record<string, string> = {
