@@ -54,10 +54,9 @@ export function LeftPanel() {
   return (
     <aside className="relative flex h-[calc(100vh-3.5rem)] w-96 shrink-0 flex-col border-r border-white/10 bg-[#0a0f12] text-white">
       {/* Top Tab Switcher */}
-      <div className="grid grid-cols-4 border-b border-white/10 bg-[#06090c] p-1.5 text-xs">
+      <div className="grid grid-cols-3 border-b border-white/10 bg-[#06090c] p-1.5 text-xs">
         {[
           { id: "content", label: "Inspect", icon: Sliders },
-          { id: "elements", label: "Widgets", icon: LayoutGrid },
           { id: "navigator", label: "Tree", icon: ListTree },
           { id: "settings", label: "Theme", icon: Palette },
         ].map((tab) => {
@@ -82,7 +81,6 @@ export function LeftPanel() {
 
       {/* Main Tab Body */}
       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-        {activeTab === "elements" && <WidgetsCatalog onAdd={addSection} />}
         {activeTab === "navigator" && (
           <NavigatorTree
             sections={draftConfig.sections || []}

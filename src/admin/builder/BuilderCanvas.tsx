@@ -221,18 +221,6 @@ export function BuilderCanvas() {
                   );
                 })}
 
-                {/* Quick Add Section Button at the bottom of canvas */}
-                {!previewOnly && (
-                  <div className="my-12 flex justify-center px-4">
-                    <button
-                      onClick={() => addSection("announcement")}
-                      className="group flex items-center gap-2 rounded-full border border-dashed border-emerald-400/40 bg-emerald-500/5 px-6 py-3 text-xs font-semibold text-emerald-300 transition-all hover:border-emerald-400 hover:bg-emerald-500/10 active:scale-95"
-                    >
-                      <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
-                      <span>+ Add New Section or Widget</span>
-                    </button>
-                  </div>
-                )}
               </main>
 
               <Footer />
