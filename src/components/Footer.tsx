@@ -1,21 +1,27 @@
 import { useMemo } from "react";
 import { Crown } from "lucide-react";
 import { useSiteStore, defaultFooterConfig, type FooterConfig } from "../store/siteStore";
+import defaultLogoUrl from "../assets/logo.png";
 
 export function Footer() {
   const { publishedConfig } = useSiteStore();
 
   const footer: FooterConfig = useMemo(() => {
+    let resolved = publishedConfig?.footer || defaultFooterConfig;
     try {
       const savedStr = typeof window !== "undefined" ? localStorage.getItem("tps_brand_footer_v1") : null;
       if (savedStr) {
         const parsed: Partial<FooterConfig> = JSON.parse(savedStr);
         if (parsed && (parsed.logoImageUrl || parsed.logoType)) {
-          return { ...defaultFooterConfig, ...(publishedConfig?.footer || {}), ...parsed };
+          resolved = { ...defaultFooterConfig, ...(publishedConfig?.footer || {}), ...parsed };
         }
       }
     } catch {}
-    return publishedConfig?.footer || defaultFooterConfig;
+    return {
+      ...resolved,
+      logoType: resolved.logoType || "image",
+      logoImageUrl: resolved.logoImageUrl || defaultLogoUrl,
+    };
   }, [publishedConfig?.footer]);
 
   return (
@@ -25,11 +31,11 @@ export function Footer() {
           {/* Brand */}
           <div className="max-w-sm">
             <div className="flex items-center gap-2.5">
-              {footer.logoType === "image" && footer.logoImageUrl ? (
+              {footer.logoType === "image" && (footer.logoImageUrl || defaultLogoUrl) ? (
                 <img
-                  src={footer.logoImageUrl}
+                  src={footer.logoImageUrl || defaultLogoUrl}
                   alt={`${footer.brandTitle || "Teen Patti"} ${footer.brandAccent || "Stars"}`}
-                  className="h-10 w-auto max-h-10 max-w-[180px] rounded-lg object-contain shrink-0"
+                  className="h-10 w-10 rounded-xl object-contain shrink-0 shadow-md"
                 />
               ) : (
                 <div className="relative grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-800 shadow-lg shrink-0">

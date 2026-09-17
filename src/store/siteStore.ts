@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import rawWpPosts from "../data/wpPosts.json";
 import rawWpPages from "../data/wpPages.json";
+import defaultLogoUrl from "../assets/logo.png";
 
 export type DeviceMode = "desktop" | "tablet" | "mobile";
 export type EditorTab = "elements" | "navigator" | "content" | "style" | "settings";
@@ -1168,8 +1169,8 @@ export const defaultFooterConfig: FooterConfig = {
   brandTitle: "Teen Patti",
   brandAccent: "Stars",
   brandSubtitle: "Premium Edition",
-  logoType: "icon",
-  logoImageUrl: "",
+  logoType: "image",
+  logoImageUrl: defaultLogoUrl,
   showBrandNameWithLogo: true,
   description:
     "India's most refined real-money Teen Patti experience. Trusted by 50 lakh+ players across the country. Built with obsession in Bangalore.",
@@ -1372,6 +1373,25 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
         }
       }
     } catch {}
+
+    if (published.footer) {
+      if (!published.footer.logoImageUrl && published.footer.logoType === "image") {
+        published.footer.logoImageUrl = defaultLogoUrl;
+      }
+      if (!published.footer.logoImageUrl) {
+        published.footer.logoType = "image";
+        published.footer.logoImageUrl = defaultLogoUrl;
+      }
+    }
+    if (draft.footer) {
+      if (!draft.footer.logoImageUrl && draft.footer.logoType === "image") {
+        draft.footer.logoImageUrl = defaultLogoUrl;
+      }
+      if (!draft.footer.logoImageUrl) {
+        draft.footer.logoType = "image";
+        draft.footer.logoImageUrl = defaultLogoUrl;
+      }
+    }
 
     if (!draft.pages) {
       draft.pages = published.pages;

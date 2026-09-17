@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Crown, Download, Sun, Moon } from "lucide-react";
 import { cn } from "../utils/cn";
 import { useSiteStore, defaultFooterConfig, type FooterConfig } from "../store/siteStore";
+import defaultLogoUrl from "../assets/logo.png";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -18,35 +19,36 @@ export function Navbar() {
 
   // Instant direct resolution from standalone brand store
   const brand: FooterConfig = useMemo(() => {
+    let resolved = publishedConfig.footer || defaultFooterConfig;
     try {
       const savedStr = typeof window !== "undefined" ? localStorage.getItem("tps_brand_footer_v1") : null;
       if (savedStr) {
         const parsed: Partial<FooterConfig> = JSON.parse(savedStr);
         if (parsed && (parsed.logoImageUrl || parsed.logoType)) {
-          return { ...defaultFooterConfig, ...(publishedConfig?.footer || {}), ...parsed };
+          resolved = { ...defaultFooterConfig, ...(publishedConfig?.footer || {}), ...parsed };
         }
       }
     } catch {}
-    return publishedConfig.footer || defaultFooterConfig;
+    return {
+      ...resolved,
+      logoType: resolved.logoType || "image",
+      logoImageUrl: resolved.logoImageUrl || defaultLogoUrl,
+    };
   }, [publishedConfig.footer]);
 
   const isLight = publishedConfig.theme.colorMode === "light";
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
-    <header
-      className={cn(
-        "fixed inset-x-0 top-0 z-50 transition-all duration-500",
-        scrolled ? "py-2" : "py-4"
-      )}
-    >
-      <div className="mx-auto w-full max-w-7xl px-4 md:px-6">
+    <header className="fixed top-0 left-0 right-0 z-50 px-3 pt-3 md:px-6 md:pt-4">
+      <div className="mx-auto max-w-7xl">
         <motion.nav
           initial={{ y: -30, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -60,11 +62,11 @@ export function Navbar() {
         >
           {/* Logo */}
           <a href="/" className="flex items-center gap-2.5">
-            {brand.logoType === "image" && brand.logoImageUrl ? (
+            {brand.logoType === "image" && (brand.logoImageUrl || defaultLogoUrl) ? (
               <img
-                src={brand.logoImageUrl}
+                src={brand.logoImageUrl || defaultLogoUrl}
                 alt={`${brand.brandTitle || "Teen Patti"} ${brand.brandAccent || "Stars"}`}
-                className="h-9 w-auto max-h-9 max-w-[180px] rounded-lg object-contain shrink-0"
+                className="h-9 w-9 rounded-xl object-contain shrink-0 shadow-md"
               />
             ) : (
               <div className="relative grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-800 shadow-[0_8px_24px_-8px_rgba(16,185,129,0.6)] shrink-0">

@@ -25,6 +25,7 @@ import {
   FooterLinkItem,
   FooterSocialItem,
 } from "../../store/siteStore";
+import defaultLogoUrl from "../../assets/logo.png";
 
 function compressLogoImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -713,12 +714,12 @@ export function FooterManager() {
                     Header Navbar (Dark Background)
                   </span>
                   <div className="flex h-12 items-center rounded-lg bg-black/40 px-3 border border-white/5">
-                    {footer.logoType === "image" && footer.logoImageUrl ? (
+                    {footer.logoType === "image" && (footer.logoImageUrl || defaultLogoUrl) ? (
                       <div className="flex items-center gap-2.5">
                         <img
-                          src={footer.logoImageUrl}
+                          src={footer.logoImageUrl || defaultLogoUrl}
                           alt="Logo preview"
-                          className="h-8 w-auto max-h-8 max-w-[140px] rounded object-contain shrink-0"
+                          className="h-8 w-8 rounded-lg object-contain shrink-0 shadow-sm"
                         />
                         {footer.showBrandNameWithLogo !== false && (
                           <div className="flex flex-col leading-none">
@@ -761,12 +762,12 @@ export function FooterManager() {
                     Header Navbar (Light Background)
                   </span>
                   <div className="flex h-12 items-center rounded-lg bg-white px-3 border border-slate-200 shadow-sm">
-                    {footer.logoType === "image" && footer.logoImageUrl ? (
+                    {footer.logoType === "image" && (footer.logoImageUrl || defaultLogoUrl) ? (
                       <div className="flex items-center gap-2.5">
                         <img
-                          src={footer.logoImageUrl}
+                          src={footer.logoImageUrl || defaultLogoUrl}
                           alt="Logo preview"
-                          className="h-8 w-auto max-h-8 max-w-[140px] rounded object-contain shrink-0"
+                          className="h-8 w-8 rounded-lg object-contain shrink-0 shadow-sm"
                         />
                         {footer.showBrandNameWithLogo !== false && (
                           <div className="flex flex-col leading-none">
@@ -1071,11 +1072,11 @@ export function FooterManager() {
               {/* Brand Preview */}
               <div>
                 <div className="flex items-center gap-2.5">
-                  {footer.logoType === "image" && footer.logoImageUrl ? (
+                  {footer.logoType === "image" && (footer.logoImageUrl || defaultLogoUrl) ? (
                     <img
-                      src={footer.logoImageUrl}
+                      src={footer.logoImageUrl || defaultLogoUrl}
                       alt={footer.brandTitle || "Teen Patti"}
-                      className="h-8 w-auto max-h-8 max-w-[140px] rounded object-contain shrink-0"
+                      className="h-8 w-8 rounded-lg object-contain shrink-0 shadow-sm"
                     />
                   ) : (
                     <div className="relative grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-800 shrink-0">
