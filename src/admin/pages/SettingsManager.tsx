@@ -15,7 +15,6 @@ import {
   Edit3,
   RotateCcw,
   X,
-  Code,
   FileCode,
 } from "lucide-react";
 import { useSiteStore } from "../../store/siteStore";

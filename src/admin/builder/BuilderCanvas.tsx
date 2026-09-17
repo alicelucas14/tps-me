@@ -5,7 +5,6 @@ import {
   ChevronDown,
   Copy,
   Trash2,
-  Plus,
 } from "lucide-react";
 import { useSiteStore, type SectionConfig } from "../../store/siteStore";
 
@@ -59,7 +58,6 @@ export function BuilderCanvas() {
     moveSection,
     duplicateSection,
     deleteSection,
-    addSection,
   } = useSiteStore();
 
   const [hoveredSectionId, setHoveredSectionId] = useState<string | null>(null);

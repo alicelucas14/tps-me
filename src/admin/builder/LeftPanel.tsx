@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  LayoutGrid,
   ListTree,
   Sliders,
   Palette,
@@ -46,7 +45,7 @@ import {
   RotateCcw,
   X,
 } from "lucide-react";
-import { useSiteStore, type SectionConfig, type EditorTab, type BackgroundConfig, type SectionStyleConfig } from "../../store/siteStore";
+import { useSiteStore, type SectionConfig, type EditorTab, type BackgroundConfig, type SectionStyleConfig, type TypographyConfig } from "../../store/siteStore";
 import {
   COLOR_PRESETS,
   GRADIENT_PRESETS,
@@ -65,7 +64,6 @@ export function LeftPanel() {
     moveSection,
     duplicateSection,
     deleteSection,
-    addSection,
     updateSectionProperty,
     updateSectionData,
     updateSectionStyle,
@@ -164,7 +162,7 @@ export function LeftPanel() {
 }
 
 /* ——— Widgets Catalog Tab ——— */
-function WidgetsCatalog({ onAdd }: { onAdd: (type: SectionConfig["type"]) => void }) {
+export function WidgetsCatalog({ onAdd }: { onAdd: (type: SectionConfig["type"]) => void }) {
   const widgetList = [
     {
       type: "announcement" as const,

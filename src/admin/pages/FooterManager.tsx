@@ -26,6 +26,55 @@ import {
   FooterSocialItem,
 } from "../../store/siteStore";
 
+function compressLogoImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (file.type === "image/svg+xml" || file.size < 60000) {
+      const reader = new FileReader();
+      reader.onload = (evt) => resolve((evt.target?.result as string) || "");
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = (evt) => {
+      const src = evt.target?.result as string;
+      const img = new Image();
+      img.onerror = () => resolve(src);
+      img.onload = () => {
+        const MAX_WIDTH = 600;
+        const MAX_HEIGHT = 300;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+          const ratio = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(src);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        const isPng = file.type === "image/png";
+        const mimeType = isPng ? "image/png" : "image/webp";
+        const compressed = canvas.toDataURL(mimeType, 0.85);
+        resolve(compressed);
+      };
+      img.src = src;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export function FooterManager() {
   const { draftConfig, updateFooter, publish } = useSiteStore();
   const footer: FooterConfig = draftConfig.footer || defaultFooterConfig;
@@ -576,9 +625,14 @@ export function FooterManager() {
                   <input
                     type="text"
                     value={footer.logoImageUrl || ""}
-                    onChange={(e) =>
-                      mutateFooter((prev) => ({ ...prev, logoImageUrl: e.target.value }))
-                    }
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      mutateFooter((prev) => ({
+                        ...prev,
+                        logoType: val ? "image" : prev.logoType,
+                        logoImageUrl: val,
+                      }));
+                    }}
                     className="w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-xs text-emerald-300 font-mono placeholder-white/30 focus:border-emerald-500 focus:outline-none"
                     placeholder="https://example.com/logo.png or /assets/logo.svg"
                   />
@@ -592,28 +646,31 @@ export function FooterManager() {
                       type="file"
                       accept="image/*"
                       className="hidden"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          const reader = new FileReader();
-                          reader.onload = (evt) => {
-                            const result = evt.target?.result as string;
+                          try {
+                            const result = await compressLogoImage(file);
                             if (result) {
                               mutateFooter((prev) => ({
                                 ...prev,
                                 logoType: "image",
                                 logoImageUrl: result,
                               }));
+                              publish();
+                              setSaved(true);
+                              setTimeout(() => setSaved(false), 2500);
                             }
-                          };
-                          reader.readAsDataURL(file);
+                          } catch (err) {
+                            console.error("Failed to process logo file", err);
+                          }
                         }
                       }}
                     />
                   </label>
 
                   <span className="text-[11px] text-white/40">
-                    Transparent PNG, SVG, or WebP recommended.
+                    Transparent PNG, SVG, or WebP recommended (Auto-optimized for web saving).
                   </span>
                 </div>
               </div>

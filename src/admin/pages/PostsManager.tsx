@@ -98,20 +98,11 @@ export function PostsManager() {
     setTitle("");
     setSlug("");
     setExcerpt("");
-    setContent(
-      `Teen Patti is fundamentally a game of mathematical discipline, psychological observation, and bankroll management.\n\n` +
-      `![Teen Patti High Roller Table](https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=1200&q=80)\n\n` +
-      `### 1. Bankroll Management & Odds\n` +
-      `Never risk more than 5% of your total session bankroll on a single hand. Set hard session loss limits and lock in winnings before table dynamics shift.\n\n` +
-      `### 2. Learn the Official Rules\n` +
-      `Before playing with real money, make sure you understand hand hierarchies and variations by reading our [Official How to Play Guide](/#/how-to-play).\n\n` +
-      `### 3. Unlock VIP Cashback\n` +
-      `High-volume card players can also earn up to 10% daily rakeback through the [Teen Patti VIP Club](/#/vip-club).`
-    );
-    setCoverImage("https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=1200&q=80");
+    setContent("");
+    setCoverImage("");
     setAuthor("Teen Patti Strategy Team");
     setCategory("Strategy Guide");
-    setReadTime("4 min read");
+    setReadTime("3 min read");
     setBadge("New");
     setShowAddModal(true);
   };

@@ -23,21 +23,27 @@ export function PageView({ page, onBack }: PageViewProps) {
 
   // Sanitize excerpt to remove raw markdown images, broken link tails, and dangling URLs
   const cleanExcerpt = (page.excerpt || "")
-    .replace(/!?\[?[^\]]*\]?\((https?:\/\/[^)]+)\)/gi, "")
+    .replace(/[\r\n]+/g, " ")
+    .replace(/!\[?[^\]()]*\]?\s*\([^)]*\)/gi, "")
+    .replace(/![^(\s\)]*\([^)]*\)/gi, "")
+    .replace(/!\([^)]*\)/gi, "")
+    .replace(/https?:\/\/\S+/gi, "")
     .replace(/\[[^\]]*$/g, "")
     .replace(/\(https?:?[^)]*(\)?|$)/gi, "")
-    .replace(/https?:[^\s)]+/gi, "")
+    .replace(/^[,\s(:;\\/-]+/, "")
     .replace(/[,(:;\\/-]+$/, "")
     .replace(/\s+/g, " ")
     .trim();
 
   // If content starts with a featured image matching coverImage, strip it to prevent duplicate images
   let bodyContent = page.content || cleanExcerpt || "No content available.";
-  if (page.coverImage) {
-    const escapedCover = page.coverImage.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const topImageRegex = new RegExp(`^\\s*!?\\[?[^\\]]*\\]?\\(${escapedCover}\\)\\s*`, "i");
-    bodyContent = bodyContent.replace(topImageRegex, "").trim();
-  }
+  bodyContent = bodyContent.replace(/^(\s*!?\[?[\s\S]*?\]?\([^)]+\)\s*)+/i, (match) => {
+    // Only strip if it's an image block at the very top
+    if (/featured-image|\.(png|jpe?g|webp|gif)/i.test(match)) {
+      return "";
+    }
+    return match;
+  }).trim();
 
   return (
     <article className="min-h-screen pt-28 pb-24 px-4 md:px-6">

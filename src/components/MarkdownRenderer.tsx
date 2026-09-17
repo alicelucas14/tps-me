@@ -9,8 +9,19 @@ interface MarkdownRendererProps {
 export function MarkdownRenderer({ content, className = "" }: MarkdownRendererProps) {
   if (!content) return null;
 
+  // Pre-process & sanitize content: clean newlines inside image tags and normalize loose !alt(url)
+  const sanitizedContent = content
+    .replace(/!\[([\s\S]*?)\]\((https?:\/\/[^)]+)\)/gi, (_m, alt, src) => {
+      const cleanAlt = alt.replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
+      return `![${cleanAlt}](${src})`;
+    })
+    .replace(/!([^\[\(\)\r\n]+)[\r\n]*\((https?:\/\/[^)]+)\)/gi, (_m, alt, src) => {
+      const cleanAlt = alt.replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
+      return `![${cleanAlt}](${src})`;
+    });
+
   // Split by double newline for blocks
-  const blocks = content.split(/\n\n+/);
+  const blocks = sanitizedContent.split(/\n\n+/);
 
   return (
     <div className={`space-y-5 leading-relaxed ${className}`}>

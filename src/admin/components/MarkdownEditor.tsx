@@ -1,8 +1,5 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import {
-  Heading1,
-  Heading2,
-  Heading3,
   Bold,
   Italic,
   Underline as UnderlineIcon,
@@ -12,13 +9,8 @@ import {
   List,
   ListOrdered,
   Quote,
-  Code,
-  Minus,
-  HelpCircle,
   X,
   Check,
-  Globe,
-  Sparkles,
   Maximize2,
   Eye,
   FileCode,
@@ -69,7 +61,6 @@ export function MarkdownEditor({
   const [editorMode, setEditorMode] = useState<"visual" | "code">("visual");
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [showImgModal, setShowImgModal] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Link state

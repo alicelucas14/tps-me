@@ -20,7 +20,7 @@ export interface HeroSectionData {
   tableTitle: string;
   tablePrize: string;
   tablePlayers: string;
-  visualType?: "3d-mockup" | "custom-image";
+  visualType?: "3d-mockup" | "custom-image" | "none";
   customImageUrl?: string;
   customImageAlt?: string;
 }
@@ -261,6 +261,8 @@ export interface PageConfig {
   slug: string;
   title: string;
   isHome?: boolean;
+  excerpt?: string;
+  content?: string;
   status: "published" | "draft";
   sections: SectionConfig[];
   seo: {
@@ -1104,32 +1106,52 @@ Top 50 finalists receive complimentary 5-star hotel accommodations at Taj Exotic
   },
 ];
 
-const convertedWpPages: PageConfig[] = (rawWpPages as any[]).map((p, idx) => ({
-  id: p.id || `page_wp_${idx}`,
-  slug: p.slug.startsWith("/") ? p.slug : `/${p.slug}`,
-  title: p.title,
-  status: "published" as const,
-  createdAt: p.date || "2026-01-01",
-  seo: {
-    title: `${p.title} | Teen Patti Stars`,
-    description: p.excerpt || `Official details and guide for ${p.title}`,
-  },
-  sections: [
-    {
-      id: `sec_text_wp_${idx}`,
-      type: "rich_text" as const,
-      label: "Page Document & Content",
-      visible: true,
-      data: {
-        eyebrow: "Official Document",
-        title: p.title,
-        titleAccent: "Overview",
-        subtitle: p.excerpt || `Official details regarding ${p.title}.`,
-        content: p.content || `Content for ${p.title}`,
-      } as RichTextSectionData,
+const cleanWpExcerpt = (text?: string): string => {
+  if (!text) return "";
+  return text
+    .replace(/[\r\n]+/g, " ")
+    .replace(/!\[?[^\]()]*\]?\s*\([^)]*\)/gi, "")
+    .replace(/![^(\s\)]*\([^)]*\)/gi, "")
+    .replace(/!\([^)]*\)/gi, "")
+    .replace(/https?:\/\/\S+/gi, "")
+    .replace(/\[[^\]]*$/g, "")
+    .replace(/^[,\s(:;\\/-]+/, "")
+    .replace(/[,(:;\\/-]+$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const convertedWpPages: PageConfig[] = (rawWpPages as any[]).map((p, idx) => {
+  const cleanExcerptText = cleanWpExcerpt(p.excerpt);
+  return {
+    id: p.id || `page_wp_${idx}`,
+    slug: p.slug.startsWith("/") ? p.slug : `/${p.slug}`,
+    title: p.title,
+    excerpt: cleanExcerptText,
+    content: p.content,
+    status: "published" as const,
+    createdAt: p.date || "2026-01-01",
+    seo: {
+      title: `${p.title} | Teen Patti Stars`,
+      description: cleanExcerptText || `Official details and guide for ${p.title}`,
     },
-  ],
-}));
+    sections: [
+      {
+        id: `sec_text_wp_${idx}`,
+        type: "rich_text" as const,
+        label: "Page Document & Content",
+        visible: true,
+        data: {
+          eyebrow: "Official Document",
+          title: p.title,
+          titleAccent: "Overview",
+          subtitle: cleanExcerptText || `Official details regarding ${p.title}.`,
+          content: p.content || `Content for ${p.title}`,
+        } as RichTextSectionData,
+      },
+    ],
+  };
+});
 
 export const allSitePosts: PostConfig[] = [
   ...(rawWpPosts as PostConfig[]),
