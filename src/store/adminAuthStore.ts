@@ -1,10 +1,28 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export interface AdminUser {
+export type AdminRole =
+  | "Super Admin"
+  | "Operations Manager"
+  | "Content Editor"
+  | "Support Lead";
+
+export interface AdminAccount {
+  id: string;
   username: string;
   name: string;
-  role: string;
+  role: AdminRole;
+  password: string;
+  status: "active" | "suspended";
+  createdAt: string;
+  lastLogin?: string;
+}
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  name: string;
+  role: AdminRole;
   lastLogin: string;
 }
 
@@ -13,9 +31,25 @@ interface AdminAuthStore {
   user: AdminUser | null;
   savedUsername: string;
   rememberMe: boolean;
+  accounts: AdminAccount[];
 
-  // Login & Session actions
-  login: (username: string, password: string, remember: boolean) => { success: boolean; error?: string };
+  // Account Management Actions
+  addAccount: (
+    account: Omit<AdminAccount, "id" | "createdAt">
+  ) => { success: boolean; error?: string };
+  updateAccount: (
+    id: string,
+    updates: Partial<Omit<AdminAccount, "id" | "createdAt">>
+  ) => { success: boolean; error?: string };
+  deleteAccount: (id: string) => { success: boolean; error?: string };
+  toggleAccountStatus: (id: string) => { success: boolean; error?: string };
+
+  // Auth & Session Actions
+  login: (
+    username: string,
+    password: string,
+    remember: boolean
+  ) => { success: boolean; error?: string };
   logout: () => void;
   updateCredentials: (
     oldPassword: string,
@@ -25,34 +59,40 @@ interface AdminAuthStore {
   resetCredentialsToDefault: () => void;
 }
 
-const DEFAULT_USERNAME = "admin";
-const DEFAULT_PASSWORD = "admin123";
-const CREDENTIALS_KEY = "tps_admin_security_v1";
+const DEFAULT_ACCOUNTS: AdminAccount[] = [
+  {
+    id: "acc_root_master",
+    username: "admin",
+    name: "Master Administrator",
+    role: "Super Admin",
+    password: "admin123",
+    status: "active",
+    createdAt: "2026-01-01",
+  },
+];
 
-interface StoredSecurity {
-  username: string;
-  password: string;
-}
-
-function getStoredSecurity(): StoredSecurity {
+// Helper to check old storage for migration
+function getInitialAccounts(): AdminAccount[] {
   try {
-    const raw = localStorage.getItem(CREDENTIALKeySafe());
-    if (raw) {
-      const parsed = JSON.parse(raw);
+    const rawSec = localStorage.getItem("tps_admin_security_v1");
+    if (rawSec) {
+      const parsed = JSON.parse(rawSec);
       if (parsed.username && parsed.password) {
-        return parsed;
+        return [
+          {
+            id: "acc_root_master",
+            username: parsed.username,
+            name: "Master Administrator",
+            role: "Super Admin",
+            password: parsed.password,
+            status: "active",
+            createdAt: "2026-01-01",
+          },
+        ];
       }
     }
   } catch {}
-  return { username: DEFAULT_USERNAME, password: DEFAULT_PASSWORD };
-}
-
-function CREDENTIALKeySafe() {
-  return CREDENTIALS_KEY;
-}
-
-function setStoredSecurity(sec: StoredSecurity) {
-  localStorage.setItem(CREDENTIALS_KEY, JSON.stringify(sec));
+  return DEFAULT_ACCOUNTS;
 }
 
 export const useAdminAuthStore = create<AdminAuthStore>()(
@@ -60,20 +100,212 @@ export const useAdminAuthStore = create<AdminAuthStore>()(
     (set, get) => ({
       isAuthenticated: false,
       user: null,
-      savedUsername: "admin",
+      savedUsername: "",
       rememberMe: true,
+      accounts: getInitialAccounts(),
+
+      addAccount: (accountData) => {
+        const cleanUsername = accountData.username.trim();
+        const cleanPassword = accountData.password.trim();
+        const cleanName = accountData.name.trim();
+
+        if (!cleanUsername || cleanUsername.length < 3) {
+          return { success: false, error: "Username must be at least 3 characters." };
+        }
+
+        if (!/^[a-zA-Z0-9._-]+$/.test(cleanUsername)) {
+          return { success: false, error: "Username can only contain letters, numbers, hyphens, and underscores." };
+        }
+
+        if (!cleanPassword || cleanPassword.length < 6) {
+          return { success: false, error: "Password must be at least 6 characters long." };
+        }
+
+        const existing = get().accounts.find(
+          (a) => a.username.toLowerCase() === cleanUsername.toLowerCase()
+        );
+
+        if (existing) {
+          return { success: false, error: `Account with username '@${cleanUsername}' already exists.` };
+        }
+
+        const newAccount: AdminAccount = {
+          id: `acc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          username: cleanUsername,
+          name: cleanName || cleanUsername,
+          role: accountData.role || "Operations Manager",
+          password: cleanPassword,
+          status: accountData.status || "active",
+          createdAt: new Date().toISOString().split("T")[0],
+        };
+
+        set((state) => ({
+          accounts: [...state.accounts, newAccount],
+        }));
+
+        return { success: true };
+      },
+
+      updateAccount: (id, updates) => {
+        const accounts = get().accounts;
+        const target = accounts.find((a) => a.id === id);
+
+        if (!target) {
+          return { success: false, error: "Account not found." };
+        }
+
+        if (updates.username) {
+          const cleanUser = updates.username.trim();
+          if (cleanUser.length < 3) {
+            return { success: false, error: "Username must be at least 3 characters." };
+          }
+          const duplicate = accounts.find(
+            (a) => a.id !== id && a.username.toLowerCase() === cleanUser.toLowerCase()
+          );
+          if (duplicate) {
+            return { success: false, error: `Username '@${cleanUser}' is already taken.` };
+          }
+        }
+
+        if (updates.password && updates.password.trim().length < 6) {
+          return { success: false, error: "Password must be at least 6 characters long." };
+        }
+
+        // Prevent downgrading the last active Super Admin
+        if (
+          updates.role &&
+          updates.role !== "Super Admin" &&
+          target.role === "Super Admin"
+        ) {
+          const superAdmins = accounts.filter(
+            (a) => a.role === "Super Admin" && a.status === "active"
+          );
+          if (superAdmins.length <= 1) {
+            return {
+              success: false,
+              error: "Cannot change role: There must be at least one active Super Admin.",
+            };
+          }
+        }
+
+        set((state) => ({
+          accounts: state.accounts.map((a) => {
+            if (a.id !== id) return a;
+            return {
+              ...a,
+              ...updates,
+              username: updates.username ? updates.username.trim() : a.username,
+              name: updates.name ? updates.name.trim() : a.name,
+              password: updates.password ? updates.password.trim() : a.password,
+            };
+          }),
+        }));
+
+        // If the current logged-in user was updated, keep active user synchronized
+        const currentUser = get().user;
+        if (currentUser && currentUser.id === id) {
+          set({
+            user: {
+              ...currentUser,
+              username: updates.username ? updates.username.trim() : currentUser.username,
+              name: updates.name ? updates.name.trim() : currentUser.name,
+              role: updates.role ? updates.role : currentUser.role,
+            },
+          });
+        }
+
+        return { success: true };
+      },
+
+      deleteAccount: (id) => {
+        const accounts = get().accounts;
+        const target = accounts.find((a) => a.id === id);
+
+        if (!target) {
+          return { success: false, error: "Account not found." };
+        }
+
+        // Prevent deleting currently logged-in account
+        const currentUser = get().user;
+        if (currentUser && currentUser.id === id) {
+          return { success: false, error: "You cannot delete the account you are currently logged into." };
+        }
+
+        // Prevent deleting the last Super Admin
+        if (target.role === "Super Admin") {
+          const superAdmins = accounts.filter((a) => a.role === "Super Admin");
+          if (superAdmins.length <= 1) {
+            return {
+              success: false,
+              error: "Cannot delete the only remaining Super Admin account.",
+            };
+          }
+        }
+
+        set((state) => ({
+          accounts: state.accounts.filter((a) => a.id !== id),
+        }));
+
+        return { success: true };
+      },
+
+      toggleAccountStatus: (id) => {
+        const accounts = get().accounts;
+        const target = accounts.find((a) => a.id === id);
+
+        if (!target) {
+          return { success: false, error: "Account not found." };
+        }
+
+        const currentUser = get().user;
+        if (currentUser && currentUser.id === id) {
+          return { success: false, error: "You cannot suspend your own active account." };
+        }
+
+        // Prevent suspending the last Super Admin
+        if (target.role === "Super Admin" && target.status === "active") {
+          const activeSuperAdmins = accounts.filter(
+            (a) => a.role === "Super Admin" && a.status === "active"
+          );
+          if (activeSuperAdmins.length <= 1) {
+            return {
+              success: false,
+              error: "Cannot suspend: There must be at least one active Super Admin.",
+            };
+          }
+        }
+
+        const newStatus = target.status === "active" ? "suspended" : "active";
+
+        set((state) => ({
+          accounts: state.accounts.map((a) =>
+            a.id === id ? { ...a, status: newStatus } : a
+          ),
+        }));
+
+        return { success: true };
+      },
 
       login: (username: string, password: string, remember: boolean) => {
-        const cleanUser = username.trim();
+        const cleanUser = username.trim().toLowerCase();
         const cleanPass = password.trim();
 
-        const currentSec = getStoredSecurity();
+        const account = get().accounts.find(
+          (a) => a.username.toLowerCase() === cleanUser
+        );
 
-        if (cleanUser.toLowerCase() !== currentSec.username.toLowerCase()) {
+        if (!account) {
           return { success: false, error: "Invalid username. Please check your credentials." };
         }
 
-        if (cleanPass !== currentSec.password) {
+        if (account.status === "suspended") {
+          return {
+            success: false,
+            error: "This administrator account has been suspended. Please contact a Super Admin.",
+          };
+        }
+
+        if (cleanPass !== account.password) {
           return { success: false, error: "Incorrect password. Access denied." };
         }
 
@@ -85,19 +317,22 @@ export const useAdminAuthStore = create<AdminAuthStore>()(
           month: "short",
         });
 
-        const activeUser: AdminUser = {
-          username: currentSec.username,
-          name: "Super Administrator",
-          role: "Owner / Operations Lead",
-          lastLogin: nowStr,
-        };
-
-        set({
+        // Update account's lastLogin
+        set((state) => ({
+          accounts: state.accounts.map((a) =>
+            a.id === account.id ? { ...a, lastLogin: nowStr } : a
+          ),
           isAuthenticated: true,
-          user: activeUser,
-          savedUsername: remember ? currentSec.username : "",
+          user: {
+            id: account.id,
+            username: account.username,
+            name: account.name,
+            role: account.role,
+            lastLogin: nowStr,
+          },
+          savedUsername: remember ? account.username : "",
           rememberMe: remember,
-        });
+        }));
 
         // Store session flag if remember is false
         if (!remember) {
@@ -117,9 +352,19 @@ export const useAdminAuthStore = create<AdminAuthStore>()(
       },
 
       updateCredentials: (oldPassword: string, newPassword: string, newUsername?: string) => {
-        const currentSec = getStoredSecurity();
+        const currentUser = get().user;
+        if (!currentUser) {
+          return { success: false, error: "No active session." };
+        }
 
-        if (oldPassword.trim() !== currentSec.password) {
+        const accounts = get().accounts;
+        const currentAccount = accounts.find((a) => a.id === currentUser.id);
+
+        if (!currentAccount) {
+          return { success: false, error: "Account not found." };
+        }
+
+        if (oldPassword.trim() !== currentAccount.password) {
           return { success: false, error: "Current password does not match." };
         }
 
@@ -127,48 +372,27 @@ export const useAdminAuthStore = create<AdminAuthStore>()(
           return { success: false, error: "New password must be at least 6 characters long." };
         }
 
-        const updated: StoredSecurity = {
-          username: newUsername?.trim() || currentSec.username,
+        return get().updateAccount(currentAccount.id, {
+          username: newUsername?.trim() || currentAccount.username,
           password: newPassword.trim(),
-        };
-
-        setStoredSecurity(updated);
-
-        const currentUser = get().user;
-        if (currentUser) {
-          set({
-            user: {
-              ...currentUser,
-              username: updated.username,
-            },
-            savedUsername: updated.username,
-          });
-        }
-
-        return { success: true };
+        });
       },
 
       resetCredentialsToDefault: () => {
-        setStoredSecurity({
-          username: DEFAULT_USERNAME,
-          password: DEFAULT_PASSWORD,
+        set({
+          accounts: DEFAULT_ACCOUNTS,
         });
       },
     }),
     {
-      name: "tps_admin_auth_v1",
+      name: "tps_admin_auth_v2",
       partialize: (state) => {
-        if (state.rememberMe) {
-          return {
-            isAuthenticated: state.isAuthenticated,
-            user: state.user,
-            savedUsername: state.savedUsername,
-            rememberMe: state.rememberMe,
-          };
-        }
         return {
-          savedUsername: state.savedUsername,
-          rememberMe: false,
+          accounts: state.accounts,
+          isAuthenticated: state.rememberMe ? state.isAuthenticated : false,
+          user: state.rememberMe ? state.user : null,
+          savedUsername: state.rememberMe ? state.savedUsername : "",
+          rememberMe: state.rememberMe,
         };
       },
     }

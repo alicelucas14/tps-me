@@ -14,6 +14,7 @@ import {
   BookOpen,
   PanelBottom,
   LogOut,
+  Users,
 } from "lucide-react";
 import { DashboardOverview } from "./pages/DashboardOverview";
 import { PagesManager } from "./pages/PagesManager";
@@ -22,6 +23,7 @@ import { TournamentsManager } from "./pages/TournamentsManager";
 import { BonusesManager } from "./pages/BonusesManager";
 import { SettingsManager } from "./pages/SettingsManager";
 import { FooterManager } from "./pages/FooterManager";
+import { AccountsManager } from "./pages/AccountsManager";
 import { VisualEditor } from "./builder/VisualEditor";
 import { useSiteStore } from "../store/siteStore";
 import { useAdminAuthStore } from "../store/adminAuthStore";
@@ -34,7 +36,8 @@ export type AdminPage =
   | "tournaments"
   | "bonuses"
   | "footer"
-  | "settings";
+  | "settings"
+  | "accounts";
 
 export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
   const [currentPage, setCurrentPage] = useState<AdminPage>("dashboard");
@@ -64,6 +67,7 @@ export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
     },
     { id: "tournaments" as const, label: "Tournaments & Tables", icon: Trophy },
     { id: "bonuses" as const, label: "Bonuses & Offers", icon: Gift },
+    { id: "accounts" as const, label: "Team & Accounts", icon: Users },
     { id: "footer" as const, label: "Footer Manager", icon: PanelBottom },
     { id: "settings" as const, label: "Settings & Compliance", icon: Settings },
   ];
@@ -172,6 +176,7 @@ export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
               {currentPage === "posts" && "Blog & News Posts"}
               {currentPage === "tournaments" && "Tournaments Management"}
               {currentPage === "bonuses" && "Bonuses & Rewards"}
+              {currentPage === "accounts" && "Team & Administrator Accounts"}
               {currentPage === "footer" && "Footer Navigation & Compliance"}
               {currentPage === "settings" && "Compliance & Gateways"}
             </h1>
@@ -190,9 +195,14 @@ export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
               <div className="grid h-6 w-6 place-items-center rounded-full bg-emerald-500 font-bold text-[10px] text-[#05080a]">
                 {user?.username ? user.username.substring(0, 2).toUpperCase() : "SU"}
               </div>
-              <span className="text-xs font-semibold text-white">
-                {user?.username ? `@${user.username}` : "Super Admin"}
-              </span>
+              <div className="flex flex-col leading-none">
+                <span className="text-xs font-semibold text-white">
+                  {user?.username ? `@${user.username}` : "Super Admin"}
+                </span>
+                <span className="text-[9px] text-emerald-400 font-medium">
+                  {user?.role || "Super Admin"}
+                </span>
+              </div>
             </div>
 
             <button
@@ -217,6 +227,7 @@ export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
           {currentPage === "posts" && <PostsManager />}
           {currentPage === "tournaments" && <TournamentsManager />}
           {currentPage === "bonuses" && <BonusesManager />}
+          {currentPage === "accounts" && <AccountsManager />}
           {currentPage === "footer" && <FooterManager />}
           {currentPage === "settings" && <SettingsManager />}
         </main>
