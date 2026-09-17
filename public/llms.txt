@@ -10,15 +10,15 @@
 
 ## Indexed Pages & Navigation
 - [Home & Real-Money Tables](https://teenpattistars.com/): Real-money live card tables, ₹1,500 welcome bonus, instant deposit match.
-- [Official How to Play Guide](https://teenpattistars.com/#/how-to-play): Complete hand rankings (Trail/Set, Pure Sequence, Sequence, Color, Pair, High Card), betting rules, and blind vs seen strategies.
-- [VIP Club & Rewards](https://teenpattistars.com/#/vip-club): VIP Tier structure (Bronze, Silver, Gold, Platinum, Diamond, Royal King), daily rakeback, and luxury gifts.
-- [Teen Patti Chronicles & News](https://teenpattistars.com/#/blog): Strategy breakdowns, engineering transparency notes, and tournament guides.
-- [HTML Sitemap Directory](https://teenpattistars.com/#/sitemap): Comprehensive directory index of all public URLs.
+- [Official How to Play Guide](https://teenpattistars.com/how-to-play): Complete hand rankings (Trail/Set, Pure Sequence, Sequence, Color, Pair, High Card), betting rules, and blind vs seen strategies.
+- [VIP Club & Rewards](https://teenpattistars.com/vip-club): VIP Tier structure (Bronze, Silver, Gold, Platinum, Diamond, Royal King), daily rakeback, and luxury gifts.
+- [Teen Patti Chronicles & News](https://teenpattistars.com/blog): Strategy breakdowns, engineering transparency notes, and tournament guides.
+- [HTML Sitemap Directory](https://teenpattistars.com/sitemap): Comprehensive directory index of all public URLs.
 
 ## Strategy Articles & Published Resources
-- [Top 5 Strategies for Winning High-Stakes Teen Patti in 2026](https://teenpattistars.com/#/blog/top-5-teen-patti-strategies): Pro tips on bankroll management, controlled blind betting, and table tells.
-- [Under the Hood: Instant UPI Payout Architecture](https://teenpattistars.com/#/blog/instant-upi-payouts-technology): Direct NPCI gateway routing, automated anti-fraud checks, and 99.94% payment uptime.
-- [Diwali ₹25 Crore Mega Gala Tournament Guide](https://teenpattistars.com/#/blog/diwali-mega-tournament-guide): Tournament schedule, satellite boot levels, and finale registration.
+- [Top 5 Strategies for Winning High-Stakes Teen Patti in 2026](https://teenpattistars.com/blog/top-5-teen-patti-strategies): Pro tips on bankroll management, controlled blind betting, and table tells.
+- [Under the Hood: Instant UPI Payout Architecture](https://teenpattistars.com/blog/instant-upi-payouts-technology): Direct NPCI gateway routing, automated anti-fraud checks, and 99.94% payment uptime.
+- [Diwali ₹25 Crore Mega Gala Tournament Guide](https://teenpattistars.com/blog/diwali-mega-tournament-guide): Tournament schedule, satellite boot levels, and finale registration.
 
 ## Common User Questions Answered
 1. **Is Teen Patti Stars legal?** Yes, skill-based card gaming is protected under Indian law with strict 18+ age verification and KYC requirements.
