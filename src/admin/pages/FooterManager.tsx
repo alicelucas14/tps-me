@@ -675,6 +675,28 @@ export function FooterManager() {
                     Transparent PNG, SVG, or WebP recommended (Auto-optimized for web saving).
                   </span>
                 </div>
+
+                <div className="pt-2 border-t border-white/5">
+                  <label className="flex items-center gap-2.5 cursor-pointer text-xs font-medium text-white/80 select-none">
+                    <input
+                      type="checkbox"
+                      checked={footer.showBrandNameWithLogo !== false}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        mutateFooter((prev) => ({
+                          ...prev,
+                          showBrandNameWithLogo: checked,
+                        }));
+                        publish();
+                      }}
+                      className="h-4 w-4 rounded border-white/20 bg-black/50 text-emerald-500 focus:ring-emerald-500"
+                    />
+                    <span>Show Brand Name &amp; Subtitle beside Logo Image</span>
+                  </label>
+                  <p className="mt-1 text-[11px] text-white/40 pl-6.5">
+                    Recommended when using an icon or emblem mark so &quot;{footer.brandTitle || "Teen Patti"} {footer.brandAccent || "Stars"}&quot; stays visible. Turn off if your image already includes the full brand name.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -692,11 +714,26 @@ export function FooterManager() {
                   </span>
                   <div className="flex h-12 items-center rounded-lg bg-black/40 px-3 border border-white/5">
                     {footer.logoType === "image" && footer.logoImageUrl ? (
-                      <img
-                        src={footer.logoImageUrl}
-                        alt="Logo preview"
-                        className="h-8 w-auto max-h-8 max-w-[180px] object-contain"
-                      />
+                      <div className="flex items-center gap-2.5">
+                        <img
+                          src={footer.logoImageUrl}
+                          alt="Logo preview"
+                          className="h-8 w-auto max-h-8 max-w-[140px] rounded object-contain shrink-0"
+                        />
+                        {footer.showBrandNameWithLogo !== false && (
+                          <div className="flex flex-col leading-none">
+                            <span className="text-[13px] font-semibold tracking-tight text-white">
+                              {footer.brandTitle || "Teen Patti"}{" "}
+                              {footer.brandAccent && <span className="gradient-text-gold">{footer.brandAccent}</span>}
+                            </span>
+                            {footer.brandSubtitle && (
+                              <span className="text-[9px] uppercase tracking-[0.16em] text-white/40">
+                                {footer.brandSubtitle}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <div className="flex items-center gap-2.5">
                         <div className="relative grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-800 shadow">
@@ -725,11 +762,26 @@ export function FooterManager() {
                   </span>
                   <div className="flex h-12 items-center rounded-lg bg-white px-3 border border-slate-200 shadow-sm">
                     {footer.logoType === "image" && footer.logoImageUrl ? (
-                      <img
-                        src={footer.logoImageUrl}
-                        alt="Logo preview"
-                        className="h-8 w-auto max-h-8 max-w-[180px] object-contain"
-                      />
+                      <div className="flex items-center gap-2.5">
+                        <img
+                          src={footer.logoImageUrl}
+                          alt="Logo preview"
+                          className="h-8 w-auto max-h-8 max-w-[140px] rounded object-contain shrink-0"
+                        />
+                        {footer.showBrandNameWithLogo !== false && (
+                          <div className="flex flex-col leading-none">
+                            <span className="text-[13px] font-semibold tracking-tight text-slate-900">
+                              {footer.brandTitle || "Teen Patti"}{" "}
+                              {footer.brandAccent && <span className="gradient-text-gold">{footer.brandAccent}</span>}
+                            </span>
+                            {footer.brandSubtitle && (
+                              <span className="text-[9px] uppercase tracking-[0.16em] text-slate-500">
+                                {footer.brandSubtitle}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <div className="flex items-center gap-2.5">
                         <div className="relative grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-800 shadow">
@@ -1023,23 +1075,24 @@ export function FooterManager() {
                     <img
                       src={footer.logoImageUrl}
                       alt={footer.brandTitle || "Teen Patti"}
-                      className="h-8 w-auto max-h-8 max-w-[180px] object-contain"
+                      className="h-8 w-auto max-h-8 max-w-[140px] rounded object-contain shrink-0"
                     />
                   ) : (
-                    <>
-                      <div className="relative grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-800">
-                        <Crown className="h-4 w-4 text-[#f5c242]" />
+                    <div className="relative grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-800 shrink-0">
+                      <Crown className="h-4 w-4 text-[#f5c242]" />
+                    </div>
+                  )}
+
+                  {(footer.logoType !== "image" || footer.showBrandNameWithLogo !== false) && (
+                    <div>
+                      <div className="text-sm font-bold text-white leading-none">
+                        {footer.brandTitle || "Teen Patti"}{" "}
+                        <span className="gradient-text-gold">{footer.brandAccent || "Stars"}</span>
                       </div>
-                      <div>
-                        <div className="text-sm font-bold text-white">
-                          {footer.brandTitle || "Teen Patti"}{" "}
-                          <span className="gradient-text-gold">{footer.brandAccent || "Stars"}</span>
-                        </div>
-                        <div className="text-[9px] uppercase tracking-widest text-white/40">
-                          {footer.brandSubtitle || "Premium Edition"}
-                        </div>
+                      <div className="text-[9px] uppercase tracking-widest text-white/40 mt-0.5">
+                        {footer.brandSubtitle || "Premium Edition"}
                       </div>
-                    </>
+                    </div>
                   )}
                 </div>
 

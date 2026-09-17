@@ -321,6 +321,7 @@ export interface FooterConfig {
   brandSubtitle: string;
   logoType?: "icon" | "image";
   logoImageUrl?: string;
+  showBrandNameWithLogo?: boolean;
   description: string;
   socials: FooterSocialItem[];
   columns: FooterColumnItem[];
@@ -1169,6 +1170,7 @@ export const defaultFooterConfig: FooterConfig = {
   brandSubtitle: "Premium Edition",
   logoType: "icon",
   logoImageUrl: "",
+  showBrandNameWithLogo: true,
   description:
     "India's most refined real-money Teen Patti experience. Trusted by 50 lakh+ players across the country. Built with obsession in Bangalore.",
   socials: [

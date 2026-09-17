@@ -29,25 +29,26 @@ export function Footer() {
                 <img
                   src={footer.logoImageUrl}
                   alt={`${footer.brandTitle || "Teen Patti"} ${footer.brandAccent || "Stars"}`}
-                  className="h-10 w-auto max-h-10 max-w-[220px] object-contain"
+                  className="h-10 w-auto max-h-10 max-w-[180px] rounded-lg object-contain shrink-0"
                 />
               ) : (
-                <>
-                  <div className="relative grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-800 shadow-lg shrink-0">
-                    <Crown className="h-5 w-5 text-[#f5c242]" strokeWidth={2.5} />
-                  </div>
-                  <div className="flex flex-col leading-none">
-                    <span className="text-base font-semibold tracking-tight text-white">
-                      {footer.brandTitle || "Teen Patti"}{" "}
-                      {footer.brandAccent && <span className="gradient-text-gold">{footer.brandAccent}</span>}
+                <div className="relative grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-800 shadow-lg shrink-0">
+                  <Crown className="h-5 w-5 text-[#f5c242]" strokeWidth={2.5} />
+                </div>
+              )}
+
+              {(footer.logoType !== "image" || footer.showBrandNameWithLogo !== false) && (
+                <div className="flex flex-col leading-none">
+                  <span className="text-base font-semibold tracking-tight text-white">
+                    {footer.brandTitle || "Teen Patti"}{" "}
+                    {footer.brandAccent && <span className="gradient-text-gold">{footer.brandAccent}</span>}
+                  </span>
+                  {footer.brandSubtitle && (
+                    <span className="text-[10px] uppercase tracking-[0.18em] text-white/40">
+                      {footer.brandSubtitle}
                     </span>
-                    {footer.brandSubtitle && (
-                      <span className="text-[10px] uppercase tracking-[0.18em] text-white/40">
-                        {footer.brandSubtitle}
-                      </span>
-                    )}
-                  </div>
-                </>
+                  )}
+                </div>
               )}
             </div>
 

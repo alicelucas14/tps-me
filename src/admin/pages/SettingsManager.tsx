@@ -20,6 +20,8 @@ import {
   User,
   KeyRound,
   AlertCircle,
+  Users,
+  UserPlus,
 } from "lucide-react";
 import { useSiteStore } from "../../store/siteStore";
 import { useAdminAuthStore } from "../../store/adminAuthStore";
@@ -29,9 +31,18 @@ import {
   generateDynamicLlmsTxt,
 } from "../../utils/seoHelper";
 
-export function SettingsManager() {
+export function SettingsManager({
+  onNavigateToAccounts,
+}: {
+  onNavigateToAccounts?: () => void;
+}) {
   const { draftConfig } = useSiteStore();
-  const { user, updateCredentials, resetCredentialsToDefault } = useAdminAuthStore();
+  const {
+    user,
+    accounts,
+    updateCredentials,
+    resetCredentialsToDefault,
+  } = useAdminAuthStore();
   const [saved, setSaved] = useState(false);
   const [gatewayEnabled, setGatewayEnabled] = useState(true);
   const [autoKyc, setAutoKyc] = useState(true);
@@ -673,6 +684,66 @@ export function SettingsManager() {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Team & Multi-User Accounts Card */}
+      <div className="rounded-2xl border border-white/10 bg-gradient-to-r from-emerald-500/5 via-white/[0.02] to-transparent p-6 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400">
+              <Users className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-white">Team &amp; Administrator Accounts</h3>
+                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-300">
+                  {accounts?.length || 1} Active Account{(accounts?.length || 1) !== 1 ? "s" : ""}
+                </span>
+              </div>
+              <p className="text-xs text-white/50">
+                Add new team members, configure logins, and assign roles (Super Admin, Operations Manager, Content Editor, Support Lead).
+              </p>
+            </div>
+          </div>
+
+          {onNavigateToAccounts && (
+            <button
+              type="button"
+              onClick={onNavigateToAccounts}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-500/20 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+            >
+              <UserPlus className="h-4 w-4" />
+              <span>Add New User / Manage Team</span>
+            </button>
+          )}
+        </div>
+
+        {/* Existing Accounts List */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {(accounts || []).map((acc) => (
+            <div
+              key={acc.id}
+              className="flex items-center justify-between rounded-xl border border-white/5 bg-black/40 p-3 hover:border-white/10 transition-colors"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0 text-xs font-bold uppercase">
+                  {acc.name?.charAt(0) || acc.username.charAt(0)}
+                </div>
+                <div className="min-w-0">
+                  <div className="truncate text-xs font-semibold text-white">
+                    {acc.name || acc.username}
+                  </div>
+                  <div className="truncate text-[10px] text-white/40 font-mono">
+                    @{acc.username}
+                  </div>
+                </div>
+              </div>
+              <span className="shrink-0 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
+                {acc.role}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Global Background & Theme Overview Card */}

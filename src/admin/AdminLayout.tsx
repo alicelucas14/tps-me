@@ -229,7 +229,11 @@ export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
           {currentPage === "bonuses" && <BonusesManager />}
           {currentPage === "accounts" && <AccountsManager />}
           {currentPage === "footer" && <FooterManager />}
-          {currentPage === "settings" && <SettingsManager />}
+          {currentPage === "settings" && (
+            <SettingsManager
+              onNavigateToAccounts={() => setCurrentPage("accounts")}
+            />
+          )}
         </main>
       </div>
     </div>

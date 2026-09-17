@@ -64,26 +64,27 @@ export function Navbar() {
               <img
                 src={brand.logoImageUrl}
                 alt={`${brand.brandTitle || "Teen Patti"} ${brand.brandAccent || "Stars"}`}
-                className="h-9 w-auto max-h-9 max-w-[200px] object-contain"
+                className="h-9 w-auto max-h-9 max-w-[180px] rounded-lg object-contain shrink-0"
               />
             ) : (
-              <>
-                <div className="relative grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-800 shadow-[0_8px_24px_-8px_rgba(16,185,129,0.6)] shrink-0">
-                  <Crown className="h-4.5 w-4.5 text-[#f5c242]" strokeWidth={2.5} />
-                  <div className="absolute inset-0 rounded-xl ring-1 ring-white/20" />
-                </div>
-                <div className="flex flex-col leading-none">
-                  <span className={cn("text-[15px] font-semibold tracking-tight", isLight ? "text-slate-900" : "text-white")}>
-                    {brand.brandTitle || "Teen Patti"}{" "}
-                    {brand.brandAccent && <span className="gradient-text-gold">{brand.brandAccent}</span>}
+              <div className="relative grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 via-emerald-600 to-emerald-800 shadow-[0_8px_24px_-8px_rgba(16,185,129,0.6)] shrink-0">
+                <Crown className="h-4.5 w-4.5 text-[#f5c242]" strokeWidth={2.5} />
+                <div className="absolute inset-0 rounded-xl ring-1 ring-white/20" />
+              </div>
+            )}
+
+            {(brand.logoType !== "image" || brand.showBrandNameWithLogo !== false) && (
+              <div className="flex flex-col leading-none">
+                <span className={cn("text-[15px] font-semibold tracking-tight", isLight ? "text-slate-900" : "text-white")}>
+                  {brand.brandTitle || "Teen Patti"}{" "}
+                  {brand.brandAccent && <span className="gradient-text-gold">{brand.brandAccent}</span>}
+                </span>
+                {brand.brandSubtitle && (
+                  <span className={cn("text-[10px] uppercase tracking-[0.18em]", isLight ? "text-slate-500" : "text-white/40")}>
+                    {brand.brandSubtitle}
                   </span>
-                  {brand.brandSubtitle && (
-                    <span className={cn("text-[10px] uppercase tracking-[0.18em]", isLight ? "text-slate-500" : "text-white/40")}>
-                      {brand.brandSubtitle}
-                    </span>
-                  )}
-                </div>
-              </>
+                )}
+              </div>
             )}
           </a>
 
