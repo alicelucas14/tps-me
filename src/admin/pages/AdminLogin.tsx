@@ -9,7 +9,6 @@ import {
   ShieldCheck,
   AlertCircle,
   KeyRound,
-  Sparkles,
 } from "lucide-react";
 import { useAdminAuthStore } from "../../store/adminAuthStore";
 
@@ -21,7 +20,7 @@ interface AdminLoginProps {
 export function AdminLogin({ onLoginSuccess, onExitToSite }: AdminLoginProps) {
   const { login, savedUsername, rememberMe: initialRememberMe } = useAdminAuthStore();
 
-  const [username, setUsername] = useState(savedUsername || "admin");
+  const [username, setUsername] = useState(savedUsername || "");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(initialRememberMe ?? true);
@@ -64,12 +63,6 @@ export function AdminLogin({ onLoginSuccess, onExitToSite }: AdminLoginProps) {
   const triggerShake = () => {
     setShake(true);
     setTimeout(() => setShake(false), 500);
-  };
-
-  const handleFillDemo = () => {
-    setUsername("admin");
-    setPassword("admin123");
-    setError(null);
   };
 
   return (
@@ -201,7 +194,7 @@ export function AdminLogin({ onLoginSuccess, onExitToSite }: AdminLoginProps) {
                 </div>
               </div>
 
-              {/* Remember Me & Demo Fill row */}
+              {/* Remember Me row */}
               <div className="flex items-center justify-between pt-1">
                 <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-white/60 hover:text-white/80 transition-colors">
                   <input
@@ -212,15 +205,6 @@ export function AdminLogin({ onLoginSuccess, onExitToSite }: AdminLoginProps) {
                   />
                   <span>Remember this workstation</span>
                 </label>
-
-                <button
-                  type="button"
-                  onClick={handleFillDemo}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-400/90 hover:text-amber-300 transition-colors"
-                >
-                  <Sparkles className="h-3 w-3" />
-                  <span>Demo Fill</span>
-                </button>
               </div>
 
               {/* Submit Button */}
@@ -239,16 +223,6 @@ export function AdminLogin({ onLoginSuccess, onExitToSite }: AdminLoginProps) {
                 )}
               </button>
             </form>
-
-            {/* Default credentials tip pill */}
-            <div className="mt-6 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-center">
-              <span className="text-[11px] text-white/40 block">
-                Default Credentials:{" "}
-                <code className="text-emerald-300/80 font-mono bg-white/5 px-1 py-0.5 rounded">admin</code>{" "}
-                /{" "}
-                <code className="text-emerald-300/80 font-mono bg-white/5 px-1 py-0.5 rounded">admin123</code>
-              </span>
-            </div>
           </div>
         </div>
       </main>
