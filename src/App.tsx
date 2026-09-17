@@ -18,7 +18,9 @@ import { SitemapView } from "./components/SitemapView";
 import { FAQView } from "./components/FAQView";
 import { GlobalBackground } from "./components/GlobalBackground";
 import { AdminLayout } from "./admin/AdminLayout";
+import { AdminLogin } from "./admin/pages/AdminLogin";
 import { useSiteStore } from "./store/siteStore";
+import { useAdminAuthStore } from "./store/adminAuthStore";
 import { updateRouteMeta } from "./utils/seoHelper";
 import rawWpPages from "./data/wpPages.json";
 
@@ -74,6 +76,7 @@ export default function App() {
   const [route, setRoute] = useState<string>(getActiveRouteString);
 
   const { publishedConfig, draftConfig } = useSiteStore();
+  const { isAuthenticated } = useAdminAuthStore();
   const colorMode = publishedConfig.theme?.colorMode || draftConfig.theme?.colorMode || "dark";
 
   const allPages = useMemo(() => {
@@ -438,6 +441,21 @@ export default function App() {
 
   // Admin Studio Mode
   if (resolved.type === "admin") {
+    if (!isAuthenticated) {
+      return (
+        <div data-theme="dark" className="bg-[#040709] text-white">
+          <AdminLogin
+            onLoginSuccess={() => {
+              setRoute("admin");
+            }}
+            onExitToSite={() => {
+              navigateTo("/");
+            }}
+          />
+        </div>
+      );
+    }
+
     return (
       <div data-theme="dark" className="bg-[#05080a] text-white">
         <AdminLayout

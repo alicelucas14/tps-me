@@ -13,6 +13,7 @@ import {
   FileText,
   BookOpen,
   PanelBottom,
+  LogOut,
 } from "lucide-react";
 import { DashboardOverview } from "./pages/DashboardOverview";
 import { PagesManager } from "./pages/PagesManager";
@@ -23,6 +24,7 @@ import { SettingsManager } from "./pages/SettingsManager";
 import { FooterManager } from "./pages/FooterManager";
 import { VisualEditor } from "./builder/VisualEditor";
 import { useSiteStore } from "../store/siteStore";
+import { useAdminAuthStore } from "../store/adminAuthStore";
 
 export type AdminPage =
   | "dashboard"
@@ -38,6 +40,7 @@ export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
   const [currentPage, setCurrentPage] = useState<AdminPage>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { setCurrentPageId } = useSiteStore();
+  const { logout, user } = useAdminAuthStore();
 
   const handleEditWithBuilder = (pageId: string) => {
     setCurrentPageId(pageId);
@@ -127,16 +130,27 @@ export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
         </nav>
 
         {/* Footer info & Exit to Site */}
-        <div className="border-t border-white/10 p-3">
+        <div className="border-t border-white/10 p-3 space-y-1.5">
           <button
             onClick={onExitToSite}
-            className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs font-semibold text-white/80 transition-all hover:bg-white/10 hover:text-white"
+            className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/80 transition-all hover:bg-white/10 hover:text-white"
           >
             <div className="flex items-center gap-2">
               <ExternalLink className="h-3.5 w-3.5 text-emerald-400" />
               <span>Go to Live Site</span>
             </div>
             <span className="text-[10px] text-white/40">/</span>
+          </button>
+
+          <button
+            onClick={() => logout()}
+            className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2 text-xs font-medium text-white/60 transition-all hover:border-rose-500/30 hover:bg-rose-500/10 hover:text-rose-300"
+          >
+            <div className="flex items-center gap-2">
+              <LogOut className="h-3.5 w-3.5" />
+              <span>Sign Out</span>
+            </div>
+            <span className="text-[10px] text-white/30 font-mono">exit</span>
           </button>
         </div>
       </aside>
@@ -174,10 +188,21 @@ export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
 
             <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 py-1 pl-1 pr-3">
               <div className="grid h-6 w-6 place-items-center rounded-full bg-emerald-500 font-bold text-[10px] text-[#05080a]">
-                SU
+                {user?.username ? user.username.substring(0, 2).toUpperCase() : "SU"}
               </div>
-              <span className="text-xs font-semibold text-white">Super Admin</span>
+              <span className="text-xs font-semibold text-white">
+                {user?.username ? `@${user.username}` : "Super Admin"}
+              </span>
             </div>
+
+            <button
+              onClick={() => logout()}
+              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/70 transition-all hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-300"
+              title="Log out of Admin Session"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
           </div>
         </header>
 

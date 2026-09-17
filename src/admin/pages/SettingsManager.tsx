@@ -16,8 +16,13 @@ import {
   RotateCcw,
   X,
   FileCode,
+  Lock,
+  User,
+  KeyRound,
+  AlertCircle,
 } from "lucide-react";
 import { useSiteStore } from "../../store/siteStore";
+import { useAdminAuthStore } from "../../store/adminAuthStore";
 import {
   generateDynamicSitemapXml,
   generateDynamicRobotsTxt,
@@ -26,11 +31,48 @@ import {
 
 export function SettingsManager() {
   const { draftConfig } = useSiteStore();
+  const { user, updateCredentials, resetCredentialsToDefault } = useAdminAuthStore();
   const [saved, setSaved] = useState(false);
   const [gatewayEnabled, setGatewayEnabled] = useState(true);
   const [autoKyc, setAutoKyc] = useState(true);
   const [geoBlock, setGeoBlock] = useState(true);
   const [copiedFile, setCopiedFile] = useState<string | null>(null);
+
+  // Admin Security Credentials state
+  const [adminUsername, setAdminUsername] = useState(user?.username || "admin");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [secMessage, setSecMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const handleUpdateCredentials = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSecMessage(null);
+
+    if (!currentPassword) {
+      setSecMessage({ type: "error", text: "Please enter your current password to authorize changes." });
+      return;
+    }
+    if (newPassword && newPassword.length < 6) {
+      setSecMessage({ type: "error", text: "New password must be at least 6 characters long." });
+      return;
+    }
+    if (newPassword && newPassword !== confirmPassword) {
+      setSecMessage({ type: "error", text: "New passwords do not match." });
+      return;
+    }
+
+    const res = updateCredentials(currentPassword, newPassword || currentPassword, adminUsername);
+    if (res.success) {
+      setSecMessage({ type: "success", text: "Administrator credentials updated successfully!" });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setTimeout(() => setSecMessage(null), 4000);
+    } else {
+      setSecMessage({ type: "error", text: res.error || "Failed to update credentials." });
+    }
+  };
 
   // Custom SEO / AI file content states
   const [customSitemap, setCustomSitemap] = useState<string | null>(null);
@@ -512,6 +554,125 @@ export function SettingsManager() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Admin Security & Access Passwords Card */}
+      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400">
+              <KeyRound className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-white">Admin Security & Access Passwords</h3>
+              <p className="text-xs text-white/50">Manage master administrator username and login authorization</p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              resetCredentialsToDefault();
+              setAdminUsername("admin");
+              setSecMessage({ type: "success", text: "Credentials reset to default (admin / admin123)." });
+              setTimeout(() => setSecMessage(null), 4000);
+            }}
+            className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white transition-colors"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            <span>Reset to Default (admin / admin123)</span>
+          </button>
+        </div>
+
+        {secMessage && (
+          <div
+            className={`flex items-center gap-2.5 rounded-xl p-3 text-xs ${
+              secMessage.type === "success"
+                ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                : "border border-rose-500/30 bg-rose-500/10 text-rose-300"
+            }`}
+          >
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{secMessage.text}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleUpdateCredentials} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <label className="block text-[11px] font-medium text-white/70 mb-1">
+              Admin Username
+            </label>
+            <div className="relative">
+              <User className="absolute left-3 top-2.5 h-3.5 w-3.5 text-white/40" />
+              <input
+                type="text"
+                required
+                value={adminUsername}
+                onChange={(e) => setAdminUsername(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-black/40 py-2 pl-9 pr-3 text-xs text-white focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-medium text-white/70 mb-1">
+              Current Password
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-2.5 h-3.5 w-3.5 text-white/40" />
+              <input
+                type="password"
+                required
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Current password"
+                className="w-full rounded-xl border border-white/10 bg-black/40 py-2 pl-9 pr-3 text-xs text-white font-mono focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-medium text-white/70 mb-1">
+              New Password (min 6 chars)
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-2.5 h-3.5 w-3.5 text-white/40" />
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Leave blank to keep"
+                className="w-full rounded-xl border border-white/10 bg-black/40 py-2 pl-9 pr-3 text-xs text-white font-mono focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-medium text-white/70 mb-1">
+              Confirm New Password
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-2.5 h-3.5 w-3.5 text-white/40" />
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+                className="w-full rounded-xl border border-white/10 bg-black/40 py-2 pl-9 pr-3 text-xs text-white font-mono focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="sm:col-span-2 lg:col-span-4 flex items-center justify-end pt-2">
+            <button
+              type="submit"
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2 text-xs font-bold text-white shadow-lg hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+            >
+              <Save className="h-3.5 w-3.5" />
+              <span>Update Admin Credentials</span>
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Global Background & Theme Overview Card */}
