@@ -28,7 +28,7 @@ import {
 
 function compressLogoImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
-    if (file.type === "image/svg+xml" || file.size < 60000) {
+    if (file.type === "image/svg+xml") {
       const reader = new FileReader();
       reader.onload = (evt) => resolve((evt.target?.result as string) || "");
       reader.onerror = reject;
@@ -39,12 +39,12 @@ function compressLogoImage(file: File): Promise<string> {
     const reader = new FileReader();
     reader.onerror = reject;
     reader.onload = (evt) => {
-      const src = evt.target?.result as string;
+      const src = (evt.target?.result as string) || "";
       const img = new Image();
       img.onerror = () => resolve(src);
       img.onload = () => {
-        const MAX_WIDTH = 600;
-        const MAX_HEIGHT = 300;
+        const MAX_WIDTH = 400;
+        const MAX_HEIGHT = 140;
         let width = img.width;
         let height = img.height;
 
@@ -64,9 +64,7 @@ function compressLogoImage(file: File): Promise<string> {
         }
 
         ctx.drawImage(img, 0, 0, width, height);
-        const isPng = file.type === "image/png";
-        const mimeType = isPng ? "image/png" : "image/webp";
-        const compressed = canvas.toDataURL(mimeType, 0.85);
+        const compressed = canvas.toDataURL("image/png");
         resolve(compressed);
       };
       img.src = src;
@@ -538,9 +536,10 @@ export function FooterManager() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
-                  onClick={() =>
-                    mutateFooter((prev) => ({ ...prev, logoType: "icon" }))
-                  }
+                  onClick={() => {
+                    mutateFooter((prev) => ({ ...prev, logoType: "icon" }));
+                    publish();
+                  }}
                   className={`flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-all ${
                     footer.logoType !== "image"
                       ? "border-emerald-500/60 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.15)]"
@@ -567,9 +566,10 @@ export function FooterManager() {
 
                 <button
                   type="button"
-                  onClick={() =>
-                    mutateFooter((prev) => ({ ...prev, logoType: "image" }))
-                  }
+                  onClick={() => {
+                    mutateFooter((prev) => ({ ...prev, logoType: "image" }));
+                    publish();
+                  }}
                   className={`flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-all ${
                     footer.logoType === "image"
                       ? "border-emerald-500/60 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.15)]"
@@ -607,9 +607,10 @@ export function FooterManager() {
                   {footer.logoImageUrl && (
                     <button
                       type="button"
-                      onClick={() =>
-                        mutateFooter((prev) => ({ ...prev, logoImageUrl: "" }))
-                      }
+                      onClick={() => {
+                        mutateFooter((prev) => ({ ...prev, logoImageUrl: "", logoType: "icon" }));
+                        publish();
+                      }}
                       className="flex items-center gap-1 text-[11px] text-rose-400/80 hover:text-rose-400"
                     >
                       <X className="h-3 w-3" />
@@ -626,12 +627,13 @@ export function FooterManager() {
                     type="text"
                     value={footer.logoImageUrl || ""}
                     onChange={(e) => {
-                      const val = e.target.value;
+                      const val = e.target.value.trim();
                       mutateFooter((prev) => ({
                         ...prev,
                         logoType: val ? "image" : prev.logoType,
                         logoImageUrl: val,
                       }));
+                      publish();
                     }}
                     className="w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-xs text-emerald-300 font-mono placeholder-white/30 focus:border-emerald-500 focus:outline-none"
                     placeholder="https://example.com/logo.png or /assets/logo.svg"

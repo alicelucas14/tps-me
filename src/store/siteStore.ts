@@ -1282,13 +1282,25 @@ export const defaultSiteConfig: SiteConfig = {
 const LOCAL_STORAGE_KEY_PUBLISHED = "tps_site_config_published_v8";
 const LOCAL_STORAGE_KEY_DRAFT = "tps_site_config_draft_v8";
 const THEME_MODE_KEY = "tps_color_mode";
+export const BRAND_FOOTER_KEY = "tps_brand_footer_v1";
 
 function safeLocalStorageSet(key: string, value: any) {
   try {
     if (typeof window === "undefined") return;
-    localStorage.setItem(key, typeof value === "string" ? value : JSON.stringify(value));
-  } catch {
-    // Gracefully ignore QuotaExceededError or private browsing
+    let payload = value;
+    if (value && typeof value === "object" && value.sections) {
+      // Exclude static WP posts from localStorage to stay well below 5MB quota
+      const customPosts = (value.posts || []).filter(
+        (p: any) => !(rawWpPosts as any[]).some((wp) => wp.slug === p.slug)
+      );
+      payload = {
+        ...value,
+        posts: customPosts,
+      };
+    }
+    localStorage.setItem(key, typeof payload === "string" ? payload : JSON.stringify(payload));
+  } catch (err) {
+    console.warn("Storage quota warning for key:", key, err);
   }
 }
 
@@ -1347,6 +1359,18 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
     if (!published.theme.background) published.theme.background = defaultSiteConfig.theme.background;
     if (!published.footer) published.footer = defaultFooterConfig;
 
+    // Direct standalone brand/footer sync to guarantee custom logos are never lost
+    try {
+      const savedBrandStr = localStorage.getItem(BRAND_FOOTER_KEY);
+      if (savedBrandStr) {
+        const parsedBrand = JSON.parse(savedBrandStr);
+        if (parsedBrand && (parsedBrand.logoImageUrl || parsedBrand.logoType)) {
+          published.footer = { ...defaultFooterConfig, ...published.footer, ...parsedBrand };
+          draft.footer = { ...defaultFooterConfig, ...draft.footer, ...parsedBrand };
+        }
+      }
+    } catch {}
+
     if (!draft.pages) {
       draft.pages = published.pages;
     } else {
@@ -1366,7 +1390,7 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
     if (!draft.sections) draft.sections = defaultLandingSections;
     if (!draft.theme) draft.theme = defaultSiteConfig.theme;
     if (!draft.theme.background) draft.theme.background = defaultSiteConfig.theme.background;
-    if (!draft.footer) draft.footer = defaultFooterConfig;
+    if (!draft.footer) draft.footer = published.footer || defaultFooterConfig;
 
     return { published, draft };
   } catch {
@@ -1438,12 +1462,13 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
   const pushHistory = (newDraft: SiteConfig) => {
     const { history, historyIndex } = get();
     const newHistory = [...history.slice(0, historyIndex + 1), newDraft];
-    const trimmedHistory = newHistory.slice(-20);
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY_DRAFT, JSON.stringify(newDraft));
-      localStorage.setItem(LOCAL_STORAGE_KEY_PUBLISHED, JSON.stringify(newDraft));
-    } catch (e) {
-      console.error(e);
+    const trimmedHistory = newHistory.slice(-10);
+    safeLocalStorageSet(LOCAL_STORAGE_KEY_DRAFT, newDraft);
+    safeLocalStorageSet(LOCAL_STORAGE_KEY_PUBLISHED, newDraft);
+    if (newDraft.footer) {
+      try {
+        localStorage.setItem(BRAND_FOOTER_KEY, JSON.stringify(newDraft.footer));
+      } catch {}
     }
     set({
       draftConfig: newDraft,
@@ -2168,10 +2193,21 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
     },
 
     updateFooter: (footerUpdater) => {
-      const { draftConfig } = get();
+      const { draftConfig, publishedConfig } = get();
       const currentFooter = draftConfig.footer || defaultFooterConfig;
       const updatedFooter = footerUpdater(currentFooter);
-      pushHistory({ ...draftConfig, footer: updatedFooter });
+      try {
+        localStorage.setItem(BRAND_FOOTER_KEY, JSON.stringify(updatedFooter));
+      } catch {}
+      const nextDraft = { ...draftConfig, footer: updatedFooter };
+      const nextPublished = { ...publishedConfig, footer: updatedFooter };
+      safeLocalStorageSet(LOCAL_STORAGE_KEY_DRAFT, nextDraft);
+      safeLocalStorageSet(LOCAL_STORAGE_KEY_PUBLISHED, nextPublished);
+      set({
+        draftConfig: nextDraft,
+        publishedConfig: nextPublished,
+        hasUnsavedChanges: false,
+      });
     },
 
     updateSeo: (seoUpdater) => {
@@ -2205,6 +2241,11 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
 
     publish: () => {
       const { draftConfig } = get();
+      if (draftConfig.footer) {
+        try {
+          localStorage.setItem(BRAND_FOOTER_KEY, JSON.stringify(draftConfig.footer));
+        } catch {}
+      }
       safeLocalStorageSet(LOCAL_STORAGE_KEY_PUBLISHED, draftConfig);
       set({ publishedConfig: draftConfig, hasUnsavedChanges: false });
     },

@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Crown, Download, Sun, Moon } from "lucide-react";
 import { cn } from "../utils/cn";
-import { useSiteStore, defaultFooterConfig } from "../store/siteStore";
+import { useSiteStore, defaultFooterConfig, type FooterConfig } from "../store/siteStore";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -15,7 +15,20 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const { publishedConfig, toggleColorMode } = useSiteStore();
-  const brand = publishedConfig.footer || defaultFooterConfig;
+
+  // Instant direct resolution from standalone brand store
+  const brand: FooterConfig = useMemo(() => {
+    try {
+      const savedStr = typeof window !== "undefined" ? localStorage.getItem("tps_brand_footer_v1") : null;
+      if (savedStr) {
+        const parsed: Partial<FooterConfig> = JSON.parse(savedStr);
+        if (parsed && (parsed.logoImageUrl || parsed.logoType)) {
+          return { ...defaultFooterConfig, ...(publishedConfig?.footer || {}), ...parsed };
+        }
+      }
+    } catch {}
+    return publishedConfig.footer || defaultFooterConfig;
+  }, [publishedConfig.footer]);
 
   const isLight = publishedConfig.theme.colorMode === "light";
 

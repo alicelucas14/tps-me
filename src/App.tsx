@@ -104,9 +104,16 @@ export default function App() {
     };
 
     const handleStorageChange = (e: StorageEvent) => {
-      // Sync published changes without reloading page
-      if (e.key === "tps_site_config_published_v8") {
+      // Sync published changes and brand logo without reloading page
+      if (e.key === "tps_brand_footer_v1" || e.key === "tps_site_config_published_v8") {
         const siteStore = useSiteStore.getState();
+        const footerStr = localStorage.getItem("tps_brand_footer_v1");
+        if (footerStr) {
+          try {
+            const parsedFooter = JSON.parse(footerStr);
+            siteStore.updateFooter(() => parsedFooter);
+          } catch {}
+        }
         const publishedStr = localStorage.getItem("tps_site_config_published_v8");
         if (publishedStr) {
           try {

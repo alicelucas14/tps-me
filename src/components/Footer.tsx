@@ -1,9 +1,22 @@
+import { useMemo } from "react";
 import { Crown } from "lucide-react";
-import { useSiteStore, defaultFooterConfig } from "../store/siteStore";
+import { useSiteStore, defaultFooterConfig, type FooterConfig } from "../store/siteStore";
 
 export function Footer() {
   const { publishedConfig } = useSiteStore();
-  const footer = publishedConfig?.footer || defaultFooterConfig;
+
+  const footer: FooterConfig = useMemo(() => {
+    try {
+      const savedStr = typeof window !== "undefined" ? localStorage.getItem("tps_brand_footer_v1") : null;
+      if (savedStr) {
+        const parsed: Partial<FooterConfig> = JSON.parse(savedStr);
+        if (parsed && (parsed.logoImageUrl || parsed.logoType)) {
+          return { ...defaultFooterConfig, ...(publishedConfig?.footer || {}), ...parsed };
+        }
+      }
+    } catch {}
+    return publishedConfig?.footer || defaultFooterConfig;
+  }, [publishedConfig?.footer]);
 
   return (
     <footer className="relative overflow-hidden border-t border-white/5 bg-[#030507]">
