@@ -44,6 +44,7 @@ import {
   MoreHorizontal,
   RotateCcw,
   X,
+  Upload,
 } from "lucide-react";
 import { useSiteStore, type SectionConfig, type EditorTab, type BackgroundConfig, type SectionStyleConfig, type TypographyConfig } from "../../store/siteStore";
 import {
@@ -646,9 +647,44 @@ function SectionInspector({
 
                     {d.visualType === "custom-image" ? (
                       <div className="space-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+                        {/* ── Local file upload ── */}
+                        <div>
+                          <span className="mb-1 block text-[11px] font-medium text-white/60">Upload from device</span>
+                          <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-emerald-400/40 bg-emerald-500/10 px-3 py-3 text-[11px] font-medium text-emerald-300 transition hover:bg-emerald-500/20 active:scale-95">
+                            <Upload className="h-4 w-4" />
+                            Choose image file
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                const reader = new FileReader();
+                                reader.onload = (evt) => {
+                                  const result = evt.target?.result as string;
+                                  if (result) onUpdateProperty("customImageUrl", result);
+                                };
+                                reader.readAsDataURL(file);
+                                // reset so same file can be re-picked
+                                e.target.value = "";
+                              }}
+                            />
+                          </label>
+                          {d.customImageUrl?.startsWith("data:") && (
+                            <p className="mt-1 truncate text-[10px] text-emerald-400/80">✓ Local image loaded</p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <div className="h-px flex-1 bg-white/10" />
+                          <span className="text-[10px] text-white/30">or paste URL</span>
+                          <div className="h-px flex-1 bg-white/10" />
+                        </div>
+
                         <InputField
-                          label="Custom Image URL (https://...)"
-                          value={d.customImageUrl || ""}
+                          label="Image URL (https://...)"
+                          value={d.customImageUrl?.startsWith("data:") ? "" : d.customImageUrl || ""}
                           placeholder="https://images.unsplash.com/..."
                           onChange={(v) => onUpdateProperty("customImageUrl", v)}
                         />
