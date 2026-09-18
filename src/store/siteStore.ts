@@ -1286,6 +1286,72 @@ const LOCAL_STORAGE_KEY_PUBLISHED = "tps_site_config_published_v8";
 const LOCAL_STORAGE_KEY_DRAFT = "tps_site_config_draft_v8";
 const THEME_MODE_KEY = "tps_color_mode";
 export const BRAND_FOOTER_KEY = "tps_brand_footer_v1";
+const IMAGE_BLOBS_KEY = "tps_image_blobs_v1";
+
+/**
+ * Strip data: blob URLs out of section data and save them separately
+ * in IMAGE_BLOBS_KEY (keyed by section id + field name).
+ * Returns a payload safe to JSON-stringify into the main config keys.
+ */
+function stripAndSaveBlobs(value: any): any {
+  if (!value || typeof value !== "object" || !Array.isArray(value.sections)) return value;
+  try {
+    const existingBlobs: Record<string, string> = JSON.parse(
+      localStorage.getItem(IMAGE_BLOBS_KEY) || "{}"
+    );
+    const newBlobs = { ...existingBlobs };
+    const blobFields: Array<{ sectionKey: string; field: string }> = [
+      { sectionKey: "customImageUrl", field: "customImageUrl" },
+      { sectionKey: "logoUrl", field: "logoUrl" },
+      { sectionKey: "faviconUrl", field: "faviconUrl" },
+    ];
+    const cleanedSections = value.sections.map((sec: any) => {
+      if (!sec.data) return sec;
+      const cleanData = { ...sec.data };
+      for (const { field } of blobFields) {
+        const val: string | undefined = cleanData[field];
+        if (val && val.startsWith("data:")) {
+          newBlobs[`${sec.id}__${field}`] = val;
+          cleanData[field] = `__blob__${sec.id}__${field}__`;
+        }
+      }
+      return { ...sec, data: cleanData };
+    });
+    localStorage.setItem(IMAGE_BLOBS_KEY, JSON.stringify(newBlobs));
+    return { ...value, sections: cleanedSections };
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * Re-hydrate blob placeholders back into section data from IMAGE_BLOBS_KEY.
+ */
+export function rehydrateBlobs(config: any): any {
+  if (!config || !Array.isArray(config.sections)) return config;
+  try {
+    const blobs: Record<string, string> = JSON.parse(
+      localStorage.getItem(IMAGE_BLOBS_KEY) || "{}"
+    );
+    if (Object.keys(blobs).length === 0) return config;
+    const hydratedSections = config.sections.map((sec: any) => {
+      if (!sec.data) return sec;
+      const hydratedData = { ...sec.data };
+      for (const [blobKey, blobVal] of Object.entries(blobs)) {
+        const placeholder = `__blob__${blobKey}__`;
+        for (const field of Object.keys(hydratedData)) {
+          if (hydratedData[field] === placeholder) {
+            hydratedData[field] = blobVal;
+          }
+        }
+      }
+      return { ...sec, data: hydratedData };
+    });
+    return { ...config, sections: hydratedSections };
+  } catch {
+    return config;
+  }
+}
 
 function safeLocalStorageSet(key: string, value: any) {
   try {
@@ -1296,10 +1362,10 @@ function safeLocalStorageSet(key: string, value: any) {
       const customPosts = (value.posts || []).filter(
         (p: any) => !(rawWpPosts as any[]).some((wp) => wp.slug === p.slug)
       );
-      payload = {
+      payload = stripAndSaveBlobs({
         ...value,
         posts: customPosts,
-      };
+      });
     }
     localStorage.setItem(key, typeof payload === "string" ? payload : JSON.stringify(payload));
   } catch (err) {
@@ -1313,6 +1379,11 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
     const draftStr = localStorage.getItem(LOCAL_STORAGE_KEY_DRAFT);
     let published = publishedStr ? JSON.parse(publishedStr) : defaultSiteConfig;
     let draft = draftStr ? JSON.parse(draftStr) : published;
+
+    // Rehydrate base64 image blobs that were stripped out to save space
+    published = rehydrateBlobs(published);
+    draft = rehydrateBlobs(draft);
+
 
     // Load lightweight saved theme preference if present
     const savedThemeMode = localStorage.getItem(THEME_MODE_KEY) as "dark" | "light" | null;

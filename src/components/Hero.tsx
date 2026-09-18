@@ -130,10 +130,11 @@ export function Hero({ dynamicData }: { dynamicData?: HeroSectionData }) {
                       <img
                         src={d.customImageUrl}
                         alt={d.customImageAlt || d.titlePrefix + d.titleAccent}
-                        className="w-full h-auto object-cover max-h-[500px]"
+                        className="w-full h-[420px] object-cover object-center"
                       />
                     </motion.div>
                   </div>
+
                 ) : (
                   <HeroVisual tableTitle={d.tableTitle} tablePrize={d.tablePrize} tablePlayers={d.tablePlayers} />
                 )}
