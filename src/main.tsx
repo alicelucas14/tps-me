@@ -4,12 +4,12 @@ import "./index.css";
 import App from "./App";
 import { useSiteStore } from "./store/siteStore";
 
-// Load server-published config before first render so all visitors
-// see the same content the admin published, not stale localStorage.
-useSiteStore.getState().loadServerConfig().finally(() => {
-  createRoot(document.getElementById("root")!).render(
-    <StrictMode>
-      <App />
-    </StrictMode>
-  );
-});
+// Render immediately from localStorage / default — no blank page
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);
+
+// Fetch server config in the background — updates the store silently when ready
+useSiteStore.getState().loadServerConfig();

@@ -1,4 +1,5 @@
 import express from "express";
+import compression from "compression";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -7,6 +8,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+// Gzip/Brotli compress all responses — critical for the 4.3 MB index.html
+app.use(compression());
 const PORT = process.env.PORT || 3001;
 
 // Config file lives in dist/ so it's accessible as a static file fallback too
