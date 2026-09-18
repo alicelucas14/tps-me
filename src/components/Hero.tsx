@@ -125,15 +125,16 @@ export function Hero({ dynamicData }: { dynamicData?: HeroSectionData }) {
                       initial={{ y: 20, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
                       transition={{ duration: 0.8, delay: 0.2 }}
-                      className="overflow-hidden rounded-3xl border border-white/15 bg-black/40 shadow-[0_40px_120px_-30px_rgba(16,185,129,0.4)] backdrop-blur-xl"
+                      className="overflow-hidden"
                     >
                       <img
                         src={d.customImageUrl}
                         alt={d.customImageAlt || d.titlePrefix + d.titleAccent}
-                        className="w-full h-[420px] object-cover object-center"
+                        className="w-full h-auto object-contain"
                       />
                     </motion.div>
                   </div>
+
 
                 ) : (
                   <HeroVisual tableTitle={d.tableTitle} tablePrize={d.tablePrize} tablePlayers={d.tablePlayers} />
