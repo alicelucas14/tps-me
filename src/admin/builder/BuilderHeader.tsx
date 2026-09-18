@@ -22,6 +22,7 @@ import { useSiteStore, type DeviceMode } from "../../store/siteStore";
 
 export function BuilderHeader({ onExit }: { onExit: () => void }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const {
     draftConfig,
@@ -35,6 +36,7 @@ export function BuilderHeader({ onExit }: { onExit: () => void }) {
     history,
     hasUnsavedChanges,
     publish,
+    publishToServer,
     resetToDefaults,
     toggleColorMode,
     setCurrentPageId,
@@ -68,11 +70,28 @@ export function BuilderHeader({ onExit }: { onExit: () => void }) {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={publish}
-            className="flex items-center gap-1 rounded bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-black hover:brightness-110 transition-all"
+            onClick={async () => {
+              setIsPublishing(true);
+              const result = await publishToServer();
+              setIsPublishing(false);
+              const note = document.createElement("div");
+              note.className =
+                `fixed bottom-5 right-5 z-[9999] rounded-xl px-4 py-2.5 text-xs font-bold shadow-2xl animate-bounce ${
+                  result.success
+                    ? "bg-emerald-500 text-black"
+                    : "bg-rose-500 text-white"
+                }`;
+              note.innerText = result.success
+                ? "✓ Published to Live Site for all visitors!"
+                : `✗ Publish failed: ${result.error}`;
+              document.body.appendChild(note);
+              setTimeout(() => note.remove(), 3500);
+            }}
+            disabled={isPublishing}
+            className="flex items-center gap-1 rounded bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-black hover:brightness-110 transition-all disabled:opacity-60"
           >
             <UploadCloud className="h-3 w-3" />
-            <span>Publish</span>
+            <span>{isPublishing ? "Publishing…" : "Publish"}</span>
           </button>
           <button
             onClick={() => setIsCollapsed(false)}
@@ -257,19 +276,28 @@ export function BuilderHeader({ onExit }: { onExit: () => void }) {
 
         {/* Publish Action */}
         <button
-          onClick={() => {
-            publish();
+          onClick={async () => {
+            setIsPublishing(true);
+            const result = await publishToServer();
+            setIsPublishing(false);
             const note = document.createElement("div");
             note.className =
-              "fixed bottom-5 right-5 z-[9999] rounded-xl bg-emerald-500 px-4 py-2.5 text-xs font-bold text-black shadow-2xl animate-bounce";
-            note.innerText = "✓ Changes published to Live Site!";
+              `fixed bottom-5 right-5 z-[9999] rounded-xl px-4 py-2.5 text-xs font-bold shadow-2xl animate-bounce ${
+                result.success
+                  ? "bg-emerald-500 text-black"
+                  : "bg-rose-500 text-white"
+              }`;
+            note.innerText = result.success
+              ? "✓ Published to Live Site for all visitors!"
+              : `✗ Publish failed: ${result.error}`;
             document.body.appendChild(note);
-            setTimeout(() => note.remove(), 2500);
+            setTimeout(() => note.remove(), 3500);
           }}
-          className="flex h-8 items-center gap-2 rounded-lg bg-gradient-to-r from-[#ffd96b] via-[#f5c242] to-[#c98a1a] px-3.5 text-xs font-bold text-[#1a1205] shadow-[0_4px_16px_rgba(245,194,66,0.4)] transition-all hover:brightness-110 active:scale-95"
+          disabled={isPublishing}
+          className="flex h-8 items-center gap-2 rounded-lg bg-gradient-to-r from-[#ffd96b] via-[#f5c242] to-[#c98a1a] px-3.5 text-xs font-bold text-[#1a1205] shadow-[0_4px_16px_rgba(245,194,66,0.4)] transition-all hover:brightness-110 active:scale-95 disabled:opacity-60"
         >
           <UploadCloud className="h-3.5 w-3.5" />
-          <span>Publish</span>
+          <span>{isPublishing ? "Publishing…" : "Publish"}</span>
         </button>
 
         <div className="h-4 w-px bg-white/10 mx-0.5" />

@@ -1288,6 +1288,17 @@ const THEME_MODE_KEY = "tps_color_mode";
 export const BRAND_FOOTER_KEY = "tps_brand_footer_v1";
 const IMAGE_BLOBS_KEY = "tps_image_blobs_v1";
 
+// Must match PUBLISH_SECRET env var on the server (default: tps-publish-2025)
+export const PUBLISH_SECRET_KEY = "tps_publish_secret_v1";
+export function getPublishSecret(): string {
+  try {
+    return localStorage.getItem(PUBLISH_SECRET_KEY) || "tps-publish-2025";
+  } catch {
+    return "tps-publish-2025";
+  }
+}
+
+
 /**
  * Strip data: blob URLs out of section data and save them separately
  * in IMAGE_BLOBS_KEY (keyed by section id + field name).
@@ -1544,6 +1555,8 @@ interface SiteStoreState {
   undo: () => void;
   redo: () => void;
   publish: () => void;
+  publishToServer: () => Promise<{ success: boolean; error?: string }>;
+  loadServerConfig: () => Promise<void>;
   discardDraft: () => void;
   resetToDefaults: () => void;
   importConfig: (config: SiteConfig) => void;
@@ -2342,6 +2355,80 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
       safeLocalStorageSet(LOCAL_STORAGE_KEY_PUBLISHED, draftConfig);
       set({ publishedConfig: draftConfig, hasUnsavedChanges: false });
     },
+
+    publishToServer: async () => {
+      const { draftConfig } = get();
+      try {
+        // Read blobs from separate storage and attach them
+        const blobs: Record<string, string> = JSON.parse(
+          localStorage.getItem(IMAGE_BLOBS_KEY) || "{}"
+        );
+        // Build the full config with blobs re-attached for server storage
+        const hydratedConfig = rehydrateBlobs(draftConfig);
+        const payload = { ...hydratedConfig, __blobs: blobs };
+
+        const secret = getPublishSecret();
+        const response = await fetch("/api/publish", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-publish-secret": secret,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({ error: "Unknown error" }));
+          return { success: false, error: err.error || `HTTP ${response.status}` };
+        }
+
+        // Also update localStorage
+        if (draftConfig.footer) {
+          try { localStorage.setItem(BRAND_FOOTER_KEY, JSON.stringify(draftConfig.footer)); } catch {}
+        }
+        safeLocalStorageSet(LOCAL_STORAGE_KEY_PUBLISHED, draftConfig);
+        set({ publishedConfig: draftConfig, hasUnsavedChanges: false });
+
+        return { success: true };
+      } catch (err: any) {
+        console.error("publishToServer error:", err);
+        return { success: false, error: err?.message || "Network error" };
+      }
+    },
+
+    loadServerConfig: async () => {
+      try {
+        const response = await fetch("/api/config", { cache: "no-store" });
+        if (!response.ok) return;
+        const serverConfig = await response.json();
+        if (!serverConfig || typeof serverConfig !== "object") return;
+
+        // Detach blobs from response and store them locally
+        const { __blobs, ...config } = serverConfig;
+        if (__blobs && typeof __blobs === "object") {
+          try {
+            const existingBlobs = JSON.parse(localStorage.getItem(IMAGE_BLOBS_KEY) || "{}");
+            localStorage.setItem(IMAGE_BLOBS_KEY, JSON.stringify({ ...existingBlobs, ...__blobs }));
+          } catch {}
+        }
+
+        // Rehydrate and apply as the authoritative published config
+        const hydrated = rehydrateBlobs(config);
+        safeLocalStorageSet(LOCAL_STORAGE_KEY_PUBLISHED, hydrated);
+        safeLocalStorageSet(LOCAL_STORAGE_KEY_DRAFT, hydrated);
+        set({
+          publishedConfig: hydrated,
+          draftConfig: hydrated,
+          history: [hydrated],
+          historyIndex: 0,
+          hasUnsavedChanges: false,
+        });
+      } catch (err) {
+        // Server not reachable — silently fall back to localStorage
+        console.info("[siteStore] Server config not available, using localStorage.");
+      }
+    },
+
 
     discardDraft: () => {
       const { publishedConfig } = get();
