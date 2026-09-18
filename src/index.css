@@ -94,97 +94,81 @@ html {
 
 /* Text colors inside light theme */
 .theme-light .text-white {
-  color: #0f172a;
+  color: #0f172a !important;
+}
+
+.theme-light .text-white\/90 {
+  color: #0f172a !important;
 }
 
 .theme-light .text-white\/80 {
-  color: #1e293b;
+  color: #1e293b !important;
 }
 
 .theme-light .text-white\/70 {
-  color: #334155;
+  color: #334155 !important;
 }
 
 .theme-light .text-white\/65,
 .theme-light .text-white\/60 {
-  color: #475569;
+  color: #475569 !important;
 }
 
 .theme-light .text-white\/50,
 .theme-light .text-white\/40 {
-  color: #64748b;
+  color: #64748b !important;
 }
 
-/* Backgrounds in light theme */
-.theme-light .bg-white\/\[0\.04\],
-.theme-light .bg-white\/\[0\.03\],
-.theme-light .bg-white\/\[0\.02\],
-.theme-light .bg-white\/\[0\.015\],
-.theme-light .bg-white\/5 {
-  background-color: #ffffff;
-}
-
-.theme-light .border-white\/10,
-.theme-light .border-white\/15,
-.theme-light .border-white\/20,
-.theme-light .border-white\/5 {
-  border-color: rgba(0, 0, 0, 0.08);
-}
-
-.theme-light footer,
-[data-theme="light"] footer {
-  background-color: #f1f5f9 !important;
-  border-color: rgba(0, 0, 0, 0.08) !important;
-}
-
-.theme-light footer p,
-.theme-light footer a,
-[data-theme="light"] footer p,
-[data-theme="light"] footer a {
-  color: #475569 !important;
-}
-
-.theme-light footer a:hover,
-[data-theme="light"] footer a:hover {
-  color: #059669 !important;
-}
-
-.theme-light footer h4,
-.theme-light footer span.text-white,
-[data-theme="light"] footer h4,
-[data-theme="light"] footer span.text-white {
-  color: #0f172a !important;
-}
-
-.theme-light input,
-[data-theme="light"] input {
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-  border-color: rgba(0, 0, 0, 0.12) !important;
-}
-
-.theme-light input::placeholder,
-[data-theme="light"] input::placeholder {
+.theme-light .text-white\/30,
+.theme-light .text-white\/20 {
   color: #94a3b8 !important;
 }
 
-.theme-light .grid-pattern {
-  background-image:
-    linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+.theme-light .text-white\/10 {
+  color: #cbd5e1 !important;
 }
 
-/* PRESERVE HIGH-CONTRAST TEXT FOR DARK SURFACES (Phone, Felt, Badges, Buttons) */
-.theme-light .btn-gold-glow,
-.theme-light button.btn-gold-glow,
-.theme-light a.btn-gold-glow {
-  color: #1a1205 !important;
+/* Spans, labels, li, strong — catch all inline text elements */
+.theme-light span.text-white,
+.theme-light label.text-white,
+.theme-light li.text-white,
+.theme-light strong.text-white,
+.theme-light a.text-white {
+  color: #0f172a !important;
 }
 
-.theme-light [class*="bg-emerald-"],
-.theme-light [class*="bg-amber-"],
-.theme-light [class*="bg-gradient-to-"] {
-  /* Retain text color inside colorful pill badges and buttons */
+/* Section and div dark backgrounds → lighten in light mode */
+.theme-light section[class*="bg-[#0"],
+.theme-light section[class*="bg-black"],
+.theme-light div[class*="bg-[#040"],
+.theme-light div[class*="bg-[#05"],
+.theme-light div[class*="bg-[#06"],
+.theme-light div[class*="bg-[#08"],
+.theme-light div[class*="bg-[#0a"] {
+  background-color: transparent !important;
+}
+
+/* Navbar / header */
+.theme-light nav,
+.theme-light header:not([data-theme="dark"]) {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  backdrop-filter: blur(20px);
+}
+
+.theme-light nav a,
+.theme-light nav span,
+.theme-light nav button {
+  color: #0f172a !important;
+}
+
+/* bg-black/40, bg-black/60 etc */
+.theme-light .bg-black\/40,
+.theme-light .bg-black\/60,
+.theme-light .bg-black\/80,
+.theme-light .bg-black\/30,
+.theme-light .bg-black\/20 {
+  background-color: rgba(0, 0, 0, 0.03) !important;
 }
 
 /* Casino Table & Phone Mockup Dark Interiors (Always Keep Pristine White Text) */
@@ -227,7 +211,78 @@ html {
   color: rgba(255, 255, 255, 0.6) !important;
 }
 
+
+/* Backgrounds in light theme */
+.theme-light .bg-white\/\[0\.04\],
+.theme-light .bg-white\/\[0\.03\],
+.theme-light .bg-white\/\[0\.02\],
+.theme-light .bg-white\/\[0\.015\],
+.theme-light .bg-white\/5 {
+  background-color: #ffffff;
+}
+
+.theme-light .border-white\/10,
+.theme-light .border-white\/15,
+.theme-light .border-white\/20,
+.theme-light .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Grid pattern */
+.theme-light .grid-pattern {
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+}
+
+/* PRESERVE HIGH-CONTRAST TEXT FOR DARK SURFACES (Badges, Buttons) */
+.theme-light .btn-gold-glow,
+.theme-light button.btn-gold-glow,
+.theme-light a.btn-gold-glow {
+  color: #1a1205 !important;
+}
+
+/* Footer */
+.theme-light footer,
+[data-theme="light"] footer {
+  background-color: #f1f5f9 !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+.theme-light footer p,
+.theme-light footer a,
+[data-theme="light"] footer p,
+[data-theme="light"] footer a {
+  color: #475569 !important;
+}
+
+.theme-light footer a:hover,
+[data-theme="light"] footer a:hover {
+  color: #059669 !important;
+}
+
+.theme-light footer h4,
+.theme-light footer span.text-white,
+[data-theme="light"] footer h4,
+[data-theme="light"] footer span.text-white {
+  color: #0f172a !important;
+}
+
+/* Inputs */
+.theme-light input,
+[data-theme="light"] input {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+.theme-light input::placeholder,
+[data-theme="light"] input::placeholder {
+  color: #94a3b8 !important;
+}
+
 /* Custom scrollbar */
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
