@@ -13,6 +13,9 @@ dist
 dist-ssr
 *.local
 
+# Live site config (saved by admin Publish — never overwrite with git)
+data/
+
 # Editor / IDE
 .vscode/*
 !.vscode/extensions.json

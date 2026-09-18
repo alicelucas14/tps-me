@@ -11,8 +11,11 @@ const PORT = process.env.PORT || 3001;
 
 // Config file lives in dist/ so it's accessible as a static file fallback too
 const DIST_DIR = path.join(__dirname, "dist");
-const CONFIG_FILE = path.join(DIST_DIR, "site-config.json");
-const BLOBS_FILE = path.join(DIST_DIR, "site-blobs.json");
+// data/ lives OUTSIDE dist/ so npm run build never deletes it
+const DATA_DIR = path.join(__dirname, "data");
+const CONFIG_FILE = path.join(DATA_DIR, "site-config.json");
+const BLOBS_FILE = path.join(DATA_DIR, "site-blobs.json");
+
 
 // Secret header to prevent random people from wiping config
 // Set PUBLISH_SECRET env var on your server, e.g. in PM2 ecosystem.config.js
@@ -53,8 +56,9 @@ app.post("/api/publish", (req, res) => {
   try {
     const { __blobs, ...config } = req.body;
 
-    // Ensure dist/ exists
-    if (!fs.existsSync(DIST_DIR)) fs.mkdirSync(DIST_DIR, { recursive: true });
+    // Ensure data/ exists (not dist/ — build never touches data/)
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+
 
     // Save main config (without raw blobs — keep file size manageable)
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 0));
