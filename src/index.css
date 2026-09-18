@@ -221,6 +221,19 @@ html {
   background-color: #ffffff;
 }
 
+/* Gradient-clipped text (white gradient on white bg = invisible) — flip to dark in light mode */
+.theme-light .bg-clip-text.text-transparent {
+  background-image: linear-gradient(to bottom, #0f172a, #475569) !important;
+}
+
+/* Stat cards: give a proper white surface instead of near-black */
+.theme-light .bg-\[\#05080a\] {
+  background-color: #ffffff !important;
+}
+.theme-light .bg-\[\#040709\] {
+  background-color: #f8fafc !important;
+}
+
 .theme-light .border-white\/10,
 .theme-light .border-white\/15,
 .theme-light .border-white\/20,
