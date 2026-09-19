@@ -26,7 +26,11 @@ import { FooterManager } from "./pages/FooterManager";
 import { AccountsManager } from "./pages/AccountsManager";
 import { VisualEditor } from "./builder/VisualEditor";
 import { useSiteStore } from "../store/siteStore";
-import { useAdminAuthStore } from "../store/adminAuthStore";
+import {
+  useAdminAuthStore,
+  DEFAULT_ROLE_PERMISSIONS,
+  type AdminRole,
+} from "../store/adminAuthStore";
 
 export type AdminPage =
   | "dashboard"
@@ -42,8 +46,7 @@ export type AdminPage =
 export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
   const [currentPage, setCurrentPage] = useState<AdminPage>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { setCurrentPageId } = useSiteStore();
-  const { logout, user } = useAdminAuthStore();
+  const { logout, user, rolePermissions: storePermissions } = useAdminAuthStore();
 
   const handleEditWithBuilder = (pageId: string) => {
     setCurrentPageId(pageId);
@@ -57,33 +60,8 @@ export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
 
   const userRole: AdminRole = user?.role || "Super Admin";
 
-  // Role Permission Matrix
-  const rolePermissions: Record<AdminRole, AdminPage[]> = {
-    "Super Admin": [
-      "dashboard",
-      "pages",
-      "posts",
-      "builder",
-      "tournaments",
-      "bonuses",
-      "accounts",
-      "footer",
-      "settings",
-    ],
-    "Operations Manager": [
-      "dashboard",
-      "pages",
-      "posts",
-      "builder",
-      "tournaments",
-      "bonuses",
-      "footer",
-    ],
-    "Content Editor": ["dashboard", "pages", "posts", "builder"],
-    "Support Lead": ["dashboard", "tournaments", "bonuses"],
-  };
-
-  const allowedPages = rolePermissions[userRole] || rolePermissions["Super Admin"];
+  const activeRolePermissions = storePermissions || DEFAULT_ROLE_PERMISSIONS;
+  const allowedPages = activeRolePermissions[userRole] || activeRolePermissions["Super Admin"] || [];
 
   const allNavItems = [
     { id: "dashboard" as const, label: "Dashboard", icon: LayoutDashboard },

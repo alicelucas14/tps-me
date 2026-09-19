@@ -7,6 +7,42 @@ export type AdminRole =
   | "Content Editor"
   | "Support Lead";
 
+export type AdminPage =
+  | "dashboard"
+  | "pages"
+  | "posts"
+  | "builder"
+  | "tournaments"
+  | "bonuses"
+  | "footer"
+  | "settings"
+  | "accounts";
+
+export const DEFAULT_ROLE_PERMISSIONS: Record<AdminRole, AdminPage[]> = {
+  "Super Admin": [
+    "dashboard",
+    "pages",
+    "posts",
+    "builder",
+    "tournaments",
+    "bonuses",
+    "accounts",
+    "footer",
+    "settings",
+  ],
+  "Operations Manager": [
+    "dashboard",
+    "pages",
+    "posts",
+    "builder",
+    "tournaments",
+    "bonuses",
+    "footer",
+  ],
+  "Content Editor": ["dashboard", "pages", "posts", "builder"],
+  "Support Lead": ["dashboard", "tournaments", "bonuses"],
+};
+
 export interface AdminAccount {
   id: string;
   username: string;
@@ -32,6 +68,12 @@ interface AdminAuthStore {
   savedUsername: string;
   rememberMe: boolean;
   accounts: AdminAccount[];
+  rolePermissions: Record<AdminRole, AdminPage[]>;
+
+  // Role Permissions Actions
+  updateRolePermissions: (role: AdminRole, permissions: AdminPage[]) => void;
+  toggleRolePermission: (role: AdminRole, page: AdminPage) => void;
+  resetRolePermissionsToDefault: () => void;
 
   // Account Management Actions
   addAccount: (
@@ -103,6 +145,39 @@ export const useAdminAuthStore = create<AdminAuthStore>()(
       savedUsername: "",
       rememberMe: true,
       accounts: getInitialAccounts(),
+      rolePermissions: DEFAULT_ROLE_PERMISSIONS,
+
+      updateRolePermissions: (role, permissions) => {
+        set((state) => ({
+          rolePermissions: {
+            ...DEFAULT_ROLE_PERMISSIONS,
+            ...state.rolePermissions,
+            [role]: permissions,
+          },
+        }));
+      },
+
+      toggleRolePermission: (role, page) => {
+        set((state) => {
+          const currentRoleMap = { ...DEFAULT_ROLE_PERMISSIONS, ...state.rolePermissions };
+          const currentPages = currentRoleMap[role] || [];
+          const updatedPages = currentPages.includes(page)
+            ? currentPages.filter((p) => p !== page)
+            : [...currentPages, page];
+          return {
+            rolePermissions: {
+              ...currentRoleMap,
+              [role]: updatedPages,
+            },
+          };
+        });
+      },
+
+      resetRolePermissionsToDefault: () => {
+        set({
+          rolePermissions: DEFAULT_ROLE_PERMISSIONS,
+        });
+      },
 
       addAccount: (accountData) => {
         const cleanUsername = accountData.username.trim();
@@ -389,6 +464,7 @@ export const useAdminAuthStore = create<AdminAuthStore>()(
       partialize: (state) => {
         return {
           accounts: state.accounts,
+          rolePermissions: state.rolePermissions || DEFAULT_ROLE_PERMISSIONS,
           isAuthenticated: state.rememberMe ? state.isAuthenticated : false,
           user: state.rememberMe ? state.user : null,
           savedUsername: state.rememberMe ? state.savedUsername : "",

@@ -15,11 +15,14 @@ import {
   UserCheck,
   Activity,
   Calendar,
+  RotateCcw,
 } from "lucide-react";
 import {
   useAdminAuthStore,
+  DEFAULT_ROLE_PERMISSIONS,
   type AdminAccount,
   type AdminRole,
+  type AdminPage,
 } from "../../store/adminAuthStore";
 
 const ROLE_OPTIONS: { role: AdminRole; desc: string; badgeClass: string }[] = [
@@ -45,6 +48,18 @@ const ROLE_OPTIONS: { role: AdminRole; desc: string; badgeClass: string }[] = [
   },
 ];
 
+const ALL_MODULES: { id: AdminPage; label: string }[] = [
+  { id: "dashboard", label: "Dashboard HQ" },
+  { id: "pages", label: "Pages Management" },
+  { id: "posts", label: "Blog & News Posts" },
+  { id: "builder", label: "Elementor Builder" },
+  { id: "tournaments", label: "Tournaments & Tables" },
+  { id: "bonuses", label: "Bonuses & Offers" },
+  { id: "footer", label: "Footer Manager" },
+  { id: "settings", label: "Settings & Compliance" },
+  { id: "accounts", label: "Team & Accounts" },
+];
+
 export function AccountsManager() {
   const {
     accounts,
@@ -53,7 +68,12 @@ export function AccountsManager() {
     updateAccount,
     deleteAccount,
     toggleAccountStatus,
+    rolePermissions: storePermissions,
+    toggleRolePermission,
+    resetRolePermissionsToDefault,
   } = useAdminAuthStore();
+
+  const activeRolePermissions = storePermissions || DEFAULT_ROLE_PERMISSIONS;
 
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -456,6 +476,85 @@ export function AccountsManager() {
                   );
                 })
               )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Role Permissions & Access Matrix Control Panel */}
+      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-400/10 text-amber-300">
+              <Shield className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <span>Role-Based Access Control (RBAC) Matrix</span>
+                <span className="rounded-full bg-emerald-400/10 border border-emerald-400/30 px-2.5 py-0.5 text-[10px] font-bold text-emerald-300">
+                  Live Permission Editor
+                </span>
+              </h3>
+              <p className="text-xs text-white/50">
+                Customize module access for each role. Check or uncheck modules to grant or revoke features in real-time.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => resetRolePermissionsToDefault()}
+            className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/70 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            <span>Reset Default Permissions</span>
+          </button>
+        </div>
+
+        {/* Permissions Matrix Grid / Table */}
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-white/10 bg-black/40 text-[11px] font-bold text-white/60">
+                <th className="py-3 px-4">Admin Module</th>
+                {ROLE_OPTIONS.map((opt) => (
+                  <th key={opt.role} className="py-3 px-4 text-center">
+                    <span className={`inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-bold ${opt.badgeClass}`}>
+                      {opt.role}
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5 text-xs">
+              {ALL_MODULES.map((mod) => (
+                <tr key={mod.id} className="hover:bg-white/[0.02]">
+                  <td className="py-3 px-4 font-medium text-white flex items-center gap-2">
+                    <span className="font-semibold text-white">{mod.label}</span>
+                    <span className="text-[10px] text-white/40">({mod.id})</span>
+                  </td>
+
+                  {ROLE_OPTIONS.map((opt) => {
+                    const rolePerms = activeRolePermissions[opt.role] || [];
+                    const isChecked = rolePerms.includes(mod.id);
+                    const isSuperAdmin = opt.role === "Super Admin";
+
+                    return (
+                      <td key={opt.role} className="py-3 px-4 text-center">
+                        <label className="inline-flex items-center justify-center p-1 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            disabled={isSuperAdmin}
+                            onChange={() => toggleRolePermission(opt.role, mod.id)}
+                            className="h-4.5 w-4.5 rounded accent-emerald-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                          />
+                        </label>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
