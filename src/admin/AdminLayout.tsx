@@ -55,7 +55,37 @@ export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
     return <VisualEditor onExit={() => setCurrentPage("pages")} />;
   }
 
-  const navItems = [
+  const userRole: AdminRole = user?.role || "Super Admin";
+
+  // Role Permission Matrix
+  const rolePermissions: Record<AdminRole, AdminPage[]> = {
+    "Super Admin": [
+      "dashboard",
+      "pages",
+      "posts",
+      "builder",
+      "tournaments",
+      "bonuses",
+      "accounts",
+      "footer",
+      "settings",
+    ],
+    "Operations Manager": [
+      "dashboard",
+      "pages",
+      "posts",
+      "builder",
+      "tournaments",
+      "bonuses",
+      "footer",
+    ],
+    "Content Editor": ["dashboard", "pages", "posts", "builder"],
+    "Support Lead": ["dashboard", "tournaments", "bonuses"],
+  };
+
+  const allowedPages = rolePermissions[userRole] || rolePermissions["Super Admin"];
+
+  const allNavItems = [
     { id: "dashboard" as const, label: "Dashboard", icon: LayoutDashboard },
     { id: "pages" as const, label: "All Pages", icon: FileText },
     { id: "posts" as const, label: "Blog & Posts", icon: BookOpen },
@@ -71,6 +101,12 @@ export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
     { id: "footer" as const, label: "Footer Manager", icon: PanelBottom },
     { id: "settings" as const, label: "Settings & Compliance", icon: Settings },
   ];
+
+  // Filter sidebar tabs according to current user's role permissions
+  const navItems = allNavItems.filter((item) => allowedPages.includes(item.id));
+
+  // If current active page is not allowed for the user's role, fallback to first allowed page
+  const activePage = allowedPages.includes(currentPage) ? currentPage : allowedPages[0] || "dashboard";
 
   return (
     <div className="flex min-h-screen bg-[#05080a] text-white">
@@ -99,7 +135,7 @@ export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
         <nav className="flex-1 space-y-1 p-3">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = currentPage === item.id;
+            const isActive = activePage === item.id;
             return (
               <button
                 key={item.id}
@@ -171,25 +207,27 @@ export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
               {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
             <h1 className="text-sm font-bold text-white uppercase tracking-wider">
-              {currentPage === "dashboard" && "Platform Operations HQ"}
-              {currentPage === "pages" && "Pages Management"}
-              {currentPage === "posts" && "Blog & News Posts"}
-              {currentPage === "tournaments" && "Tournaments Management"}
-              {currentPage === "bonuses" && "Bonuses & Rewards"}
-              {currentPage === "accounts" && "Team & Administrator Accounts"}
-              {currentPage === "footer" && "Footer Navigation & Compliance"}
-              {currentPage === "settings" && "Compliance & Gateways"}
+              {activePage === "dashboard" && "Platform Operations HQ"}
+              {activePage === "pages" && "Pages Management"}
+              {activePage === "posts" && "Blog & News Posts"}
+              {activePage === "tournaments" && "Tournaments Management"}
+              {activePage === "bonuses" && "Bonuses & Rewards"}
+              {activePage === "accounts" && "Team & Administrator Accounts"}
+              {activePage === "footer" && "Footer Navigation & Compliance"}
+              {activePage === "settings" && "Compliance & Gateways"}
             </h1>
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setCurrentPage("builder")}
-              className="hidden sm:flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#ffd96b] to-[#c98a1a] px-3.5 py-1.5 text-xs font-bold text-[#1a1205] shadow transition-all hover:brightness-110 active:scale-95"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>Edit Page Layout</span>
-            </button>
+            {allowedPages.includes("builder") && (
+              <button
+                onClick={() => setCurrentPage("builder")}
+                className="hidden sm:flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#ffd96b] to-[#c98a1a] px-3.5 py-1.5 text-xs font-bold text-[#1a1205] shadow transition-all hover:brightness-110 active:scale-95"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>Edit Page Layout</span>
+              </button>
+            )}
 
             <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 py-1 pl-1 pr-3">
               <div className="grid h-6 w-6 place-items-center rounded-full bg-emerald-500 font-bold text-[10px] text-[#05080a]">
@@ -218,18 +256,18 @@ export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
 
         {/* Dynamic Page Views */}
         <main className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
-          {currentPage === "dashboard" && (
+          {activePage === "dashboard" && (
             <DashboardOverview onOpenEditor={() => setCurrentPage("builder")} />
           )}
-          {currentPage === "pages" && (
+          {activePage === "pages" && (
             <PagesManager onEditWithBuilder={handleEditWithBuilder} />
           )}
-          {currentPage === "posts" && <PostsManager />}
-          {currentPage === "tournaments" && <TournamentsManager />}
-          {currentPage === "bonuses" && <BonusesManager />}
-          {currentPage === "accounts" && <AccountsManager />}
-          {currentPage === "footer" && <FooterManager />}
-          {currentPage === "settings" && (
+          {activePage === "posts" && <PostsManager />}
+          {activePage === "tournaments" && <TournamentsManager />}
+          {activePage === "bonuses" && <BonusesManager />}
+          {activePage === "accounts" && <AccountsManager />}
+          {activePage === "footer" && <FooterManager />}
+          {activePage === "settings" && (
             <SettingsManager
               onNavigateToAccounts={() => setCurrentPage("accounts")}
             />
