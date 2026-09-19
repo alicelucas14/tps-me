@@ -344,6 +344,7 @@ export interface SiteConfig {
     title: string;
     description: string;
     ogImage: string;
+    googleAnalyticsId?: string;
   };
 }
 
@@ -1279,6 +1280,7 @@ export const defaultSiteConfig: SiteConfig = {
     description:
       "Play with 50L+ verified players, instant UPI payouts in 28s, and VIP tournaments.",
     ogImage: "",
+    googleAnalyticsId: "",
   },
 };
 

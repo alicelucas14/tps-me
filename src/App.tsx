@@ -17,6 +17,7 @@ import { PageView } from "./components/PageView";
 import { SitemapView } from "./components/SitemapView";
 import { FAQView } from "./components/FAQView";
 import { GlobalBackground } from "./components/GlobalBackground";
+import { GoogleAnalytics } from "./components/GoogleAnalytics";
 import { AdminLayout } from "./admin/AdminLayout";
 import { AdminLogin } from "./admin/pages/AdminLogin";
 import { useSiteStore } from "./store/siteStore";
@@ -486,6 +487,8 @@ export default function App() {
         colorMode === "light" ? "theme-light text-[#0f172a]" : "text-white"
       }`}
     >
+      <GoogleAnalytics />
+
       {/* Dynamic Global Background Layer */}
       <GlobalBackground
         background={publishedConfig.theme.background}

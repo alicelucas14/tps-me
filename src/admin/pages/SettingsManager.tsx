@@ -22,6 +22,8 @@ import {
   AlertCircle,
   Users,
   UserPlus,
+  BarChart3,
+  Activity,
 } from "lucide-react";
 import { useSiteStore } from "../../store/siteStore";
 import { useAdminAuthStore } from "../../store/adminAuthStore";
@@ -36,7 +38,7 @@ export function SettingsManager({
 }: {
   onNavigateToAccounts?: () => void;
 }) {
-  const { draftConfig } = useSiteStore();
+  const { draftConfig, updateSeo, publishToServer } = useSiteStore();
   const {
     user,
     accounts,
@@ -48,6 +50,11 @@ export function SettingsManager({
   const [autoKyc, setAutoKyc] = useState(true);
   const [geoBlock, setGeoBlock] = useState(true);
   const [copiedFile, setCopiedFile] = useState<string | null>(null);
+
+  // Google Analytics Measurement ID State
+  const [gaMeasurementId, setGaMeasurementId] = useState(
+    draftConfig.seo?.googleAnalyticsId || ""
+  );
 
   // Admin Security Credentials state
   const [adminUsername, setAdminUsername] = useState(user?.username || "admin");
@@ -159,7 +166,12 @@ export function SettingsManager({
     URL.revokeObjectURL(url);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    updateSeo((prev) => ({
+      ...prev,
+      googleAnalyticsId: gaMeasurementId.trim(),
+    }));
+    await publishToServer();
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -214,6 +226,93 @@ export function SettingsManager({
             <ExternalLink className="h-3.5 w-3.5" />
             <span>Open HTML Sitemap</span>
           </a>
+        </div>
+
+        {/* Google Analytics 4 (GA4) Tracking Card */}
+        <div className="rounded-2xl border border-sky-500/20 bg-gradient-to-r from-sky-500/10 via-emerald-500/5 to-transparent p-5 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-sky-400/20 text-sky-300">
+                <BarChart3 className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-white">Google Analytics (GA4) Integration</h3>
+                  {gaMeasurementId.trim() ? (
+                    <span className="flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/15 px-2.5 py-0.5 text-[10px] font-bold text-emerald-300">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                      Active &amp; Tracking ({gaMeasurementId.trim()})
+                    </span>
+                  ) : (
+                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-[10px] font-bold text-white/50">
+                      Not Configured
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-white/50">
+                  Track real-time visitor traffic, conversions, acquisition channels, and user activity.
+                </p>
+              </div>
+            </div>
+
+            <a
+              href="https://analytics.google.com/"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 rounded-xl border border-sky-500/30 bg-sky-500/10 px-3 py-1.5 text-xs font-semibold text-sky-300 hover:bg-sky-500/20 transition-all shrink-0"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              <span>Google Analytics Dashboard</span>
+            </a>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3 items-end">
+            <div className="md:col-span-2">
+              <label className="block text-xs font-semibold text-white/80 mb-1.5">
+                Google Analytics 4 Measurement ID
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={gaMeasurementId}
+                  onChange={(e) => setGaMeasurementId(e.target.value)}
+                  placeholder="e.g. G-XXXXXXXXXX"
+                  className="w-full rounded-xl border border-white/15 bg-black/60 py-2.5 pl-4 pr-10 text-xs text-emerald-300 font-mono focus:border-sky-400 focus:outline-none placeholder:text-white/30"
+                />
+                {gaMeasurementId.trim() && (
+                  <Check className="absolute right-3 top-3 h-4 w-4 text-emerald-400" />
+                )}
+              </div>
+              <p className="mt-1.5 text-[11px] text-white/40">
+                Found in <strong>Google Analytics</strong> &rarr; <strong>Admin</strong> &rarr; <strong>Data Streams</strong> &rarr; Web Stream &rarr; <strong>Measurement ID</strong> (starts with <code>G-</code>).
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSave}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-emerald-500 px-4 py-2.5 text-xs font-bold text-white shadow-lg hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+              >
+                <Save className="h-4 w-4" />
+                <span>Save Measurement ID</span>
+              </button>
+              {gaMeasurementId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGaMeasurementId("");
+                    updateSeo((prev) => ({ ...prev, googleAnalyticsId: "" }));
+                    publishToServer();
+                  }}
+                  className="rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white/50 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
+                  title="Clear Google Analytics ID"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* 3 Core SEO / AI Files Generator Cards */}
