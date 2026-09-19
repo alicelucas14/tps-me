@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Crown,
   Lock,
@@ -18,7 +18,12 @@ interface AdminLoginProps {
 }
 
 export function AdminLogin({ onLoginSuccess, onExitToSite }: AdminLoginProps) {
-  const { login, savedUsername, rememberMe: initialRememberMe } = useAdminAuthStore();
+  const {
+    login,
+    savedUsername,
+    rememberMe: initialRememberMe,
+    loadServerAccounts,
+  } = useAdminAuthStore();
 
   const [username, setUsername] = useState(savedUsername || "");
   const [password, setPassword] = useState("");
@@ -28,7 +33,12 @@ export function AdminLogin({ onLoginSuccess, onExitToSite }: AdminLoginProps) {
   const [loading, setLoading] = useState(false);
   const [shake, setShake] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Sync latest accounts from server on component mount
+  useEffect(() => {
+    loadServerAccounts();
+  }, [loadServerAccounts]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -46,9 +56,8 @@ export function AdminLogin({ onLoginSuccess, onExitToSite }: AdminLoginProps) {
 
     setLoading(true);
 
-    // Simulate snappy secure handshake
-    setTimeout(() => {
-      const result = login(username, password, rememberMe);
+    try {
+      const result = await login(username, password, rememberMe);
       setLoading(false);
 
       if (result.success) {
@@ -57,7 +66,11 @@ export function AdminLogin({ onLoginSuccess, onExitToSite }: AdminLoginProps) {
         setError(result.error || "Authentication failed. Access denied.");
         triggerShake();
       }
-    }, 400);
+    } catch {
+      setLoading(false);
+      setError("Unable to authenticate. Please check your connection.");
+      triggerShake();
+    }
   };
 
   const triggerShake = () => {

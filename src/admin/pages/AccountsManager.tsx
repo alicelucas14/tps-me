@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Users,
   UserPlus,
@@ -16,6 +16,7 @@ import {
   Activity,
   Calendar,
   RotateCcw,
+  RefreshCw,
 } from "lucide-react";
 import {
   useAdminAuthStore,
@@ -71,9 +72,17 @@ export function AccountsManager() {
     rolePermissions: storePermissions,
     toggleRolePermission,
     resetRolePermissionsToDefault,
+    loadServerAccounts,
+    isSyncing,
+    lastSyncTime,
   } = useAdminAuthStore();
 
   const activeRolePermissions = storePermissions || DEFAULT_ROLE_PERMISSIONS;
+
+  // Sync latest accounts from server on component mount
+  useEffect(() => {
+    loadServerAccounts();
+  }, [loadServerAccounts]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -244,13 +253,35 @@ export function AccountsManager() {
           </p>
         </div>
 
-        <button
-          onClick={handleOpenAdd}
-          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:brightness-110 active:scale-95 cursor-pointer"
-        >
-          <UserPlus className="h-4 w-4" />
-          <span>Add New Account</span>
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => {
+              loadServerAccounts().then((res) => {
+                if (res.success) {
+                  setActionSuccess(`Synchronized ${res.count || accounts.length} accounts with server.`);
+                  setTimeout(() => setActionSuccess(null), 3000);
+                } else {
+                  setFormError(res.error || "Sync failed.");
+                  setTimeout(() => setFormError(null), 4000);
+                }
+              });
+            }}
+            disabled={isSyncing}
+            title={lastSyncTime ? `Last synced with server at ${lastSyncTime}` : "Synchronize with server"}
+            className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white transition-all cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 text-emerald-400 ${isSyncing ? "animate-spin" : ""}`} />
+            <span className="hidden sm:inline">{isSyncing ? "Syncing..." : "Sync Server"}</span>
+          </button>
+
+          <button
+            onClick={handleOpenAdd}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-emerald-500/20 transition-all hover:brightness-110 active:scale-95 cursor-pointer"
+          >
+            <UserPlus className="h-4 w-4" />
+            <span>Add New Account</span>
+          </button>
+        </div>
       </div>
 
       {/* Success Notification */}

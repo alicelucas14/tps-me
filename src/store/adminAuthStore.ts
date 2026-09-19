@@ -69,6 +69,16 @@ interface AdminAuthStore {
   rememberMe: boolean;
   accounts: AdminAccount[];
   rolePermissions: Record<AdminRole, AdminPage[]>;
+  isSyncing: boolean;
+  lastSyncTime: string | null;
+  syncError: string | null;
+
+  // Server Synchronization Actions
+  loadServerAccounts: () => Promise<{ success: boolean; count?: number; error?: string }>;
+  syncAccountsToServer: (
+    customAccounts?: AdminAccount[],
+    customRoles?: Record<AdminRole, AdminPage[]>
+  ) => Promise<{ success: boolean; error?: string }>;
 
   // Role Permissions Actions
   updateRolePermissions: (role: AdminRole, permissions: AdminPage[]) => void;
@@ -91,7 +101,7 @@ interface AdminAuthStore {
     username: string,
     password: string,
     remember: boolean
-  ) => { success: boolean; error?: string };
+  ) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateCredentials: (
     oldPassword: string,
@@ -137,6 +147,15 @@ function getInitialAccounts(): AdminAccount[] {
   return DEFAULT_ACCOUNTS;
 }
 
+// Helper to get publish secret for server communication
+function getPublishSecret(): string {
+  try {
+    return localStorage.getItem("tps_publish_secret_v1") || "tps-publish-2025";
+  } catch {
+    return "tps-publish-2025";
+  }
+}
+
 export const useAdminAuthStore = create<AdminAuthStore>()(
   persist(
     (set, get) => ({
@@ -146,6 +165,97 @@ export const useAdminAuthStore = create<AdminAuthStore>()(
       rememberMe: true,
       accounts: getInitialAccounts(),
       rolePermissions: DEFAULT_ROLE_PERMISSIONS,
+      isSyncing: false,
+      lastSyncTime: null,
+      syncError: null,
+
+      loadServerAccounts: async () => {
+        set({ isSyncing: true, syncError: null });
+        try {
+          const response = await fetch("/api/admin/accounts", { cache: "no-store" });
+          if (!response.ok) {
+            set({ isSyncing: false });
+            return { success: false, error: `HTTP ${response.status}` };
+          }
+          const data = await response.json();
+          if (!data || !Array.isArray(data.accounts)) {
+            set({ isSyncing: false });
+            return { success: false, error: "Invalid response from server" };
+          }
+
+          const serverAccounts: AdminAccount[] = data.accounts;
+          const serverRoles = data.rolePermissions || DEFAULT_ROLE_PERMISSIONS;
+          const localAccounts = get().accounts;
+
+          // If this device's local storage has custom accounts not yet on the server (e.g. 'Nel'),
+          // merge them and push to the server immediately so existing local accounts are preserved!
+          const missingOnServer = localAccounts.filter(
+            (loc) => !serverAccounts.some((srv) => srv.username.toLowerCase() === loc.username.toLowerCase())
+          );
+
+          let finalAccounts = serverAccounts;
+          if (missingOnServer.length > 0) {
+            finalAccounts = [...serverAccounts, ...missingOnServer];
+            get().syncAccountsToServer(finalAccounts, serverRoles);
+          }
+
+          const nowStr = new Date().toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          });
+
+          set({
+            accounts: finalAccounts,
+            rolePermissions: serverRoles,
+            isSyncing: false,
+            lastSyncTime: nowStr,
+            syncError: null,
+          });
+
+          return { success: true, count: finalAccounts.length };
+        } catch (err: any) {
+          set({ isSyncing: false, syncError: err?.message || "Failed to reach server" });
+          return { success: false, error: err?.message || "Offline" };
+        }
+      },
+
+      syncAccountsToServer: async (customAccounts, customRoles) => {
+        set({ isSyncing: true, syncError: null });
+        try {
+          const accounts = customAccounts || get().accounts;
+          const rolePermissions = customRoles || get().rolePermissions;
+          const secret = getPublishSecret();
+
+          const response = await fetch("/api/admin/accounts", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-publish-secret": secret,
+            },
+            body: JSON.stringify({ accounts, rolePermissions }),
+          });
+
+          if (!response.ok) {
+            const err = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+            const errMsg = err.error || "Failed to save accounts to server";
+            set({ isSyncing: false, syncError: errMsg });
+            return { success: false, error: errMsg };
+          }
+
+          const nowStr = new Date().toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          });
+
+          set({ isSyncing: false, lastSyncTime: nowStr, syncError: null });
+          return { success: true };
+        } catch (err: any) {
+          set({ isSyncing: false, syncError: err?.message || "Network error" });
+          return { success: false, error: err?.message || "Network error" };
+        }
+      },
 
       updateRolePermissions: (role, permissions) => {
         set((state) => ({
@@ -155,6 +265,7 @@ export const useAdminAuthStore = create<AdminAuthStore>()(
             [role]: permissions,
           },
         }));
+        get().syncAccountsToServer();
       },
 
       toggleRolePermission: (role, page) => {
@@ -171,12 +282,14 @@ export const useAdminAuthStore = create<AdminAuthStore>()(
             },
           };
         });
+        get().syncAccountsToServer();
       },
 
       resetRolePermissionsToDefault: () => {
         set({
           rolePermissions: DEFAULT_ROLE_PERMISSIONS,
         });
+        get().syncAccountsToServer();
       },
 
       addAccount: (accountData) => {
@@ -217,6 +330,7 @@ export const useAdminAuthStore = create<AdminAuthStore>()(
         set((state) => ({
           accounts: [...state.accounts, newAccount],
         }));
+        get().syncAccountsToServer();
 
         return { success: true };
       },
@@ -289,6 +403,7 @@ export const useAdminAuthStore = create<AdminAuthStore>()(
           });
         }
 
+        get().syncAccountsToServer();
         return { success: true };
       },
 
@@ -321,6 +436,7 @@ export const useAdminAuthStore = create<AdminAuthStore>()(
           accounts: state.accounts.filter((a) => a.id !== id),
         }));
 
+        get().syncAccountsToServer();
         return { success: true };
       },
 
@@ -358,13 +474,50 @@ export const useAdminAuthStore = create<AdminAuthStore>()(
           ),
         }));
 
+        get().syncAccountsToServer();
         return { success: true };
       },
 
-      login: (username: string, password: string, remember: boolean) => {
+      login: async (username: string, password: string, remember: boolean) => {
         const cleanUser = username.trim().toLowerCase();
         const cleanPass = password.trim();
 
+        // 1. Attempt server-side login first
+        try {
+          const res = await fetch("/api/admin/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: cleanUser, password: cleanPass }),
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.user) {
+              set({
+                isAuthenticated: true,
+                user: data.user,
+                accounts: Array.isArray(data.accounts) ? data.accounts : get().accounts,
+                rolePermissions: data.rolePermissions || get().rolePermissions,
+                savedUsername: remember ? data.user.username : "",
+                rememberMe: remember,
+              });
+
+              if (!remember) {
+                sessionStorage.setItem("tps_admin_session_active", "true");
+              }
+              return { success: true };
+            }
+          } else {
+            const errData = await res.json().catch(() => null);
+            if (errData && errData.error) {
+              return { success: false, error: errData.error };
+            }
+          }
+        } catch (networkErr) {
+          console.warn("[adminAuthStore] Server unreachable during login, checking local cache:", networkErr);
+        }
+
+        // 2. Fallback to local accounts verification (offline resilience)
         const account = get().accounts.find(
           (a) => a.username.toLowerCase() === cleanUser
         );
@@ -414,6 +567,9 @@ export const useAdminAuthStore = create<AdminAuthStore>()(
           sessionStorage.setItem("tps_admin_session_active", "true");
         }
 
+        // Try to sync lastLogin back to server
+        get().syncAccountsToServer();
+
         return { success: true };
       },
 
@@ -457,6 +613,7 @@ export const useAdminAuthStore = create<AdminAuthStore>()(
         set({
           accounts: DEFAULT_ACCOUNTS,
         });
+        get().syncAccountsToServer();
       },
     }),
     {
@@ -469,6 +626,7 @@ export const useAdminAuthStore = create<AdminAuthStore>()(
           user: state.rememberMe ? state.user : null,
           savedUsername: state.rememberMe ? state.savedUsername : "",
           rememberMe: state.rememberMe,
+          lastSyncTime: state.lastSyncTime,
         };
       },
     }
