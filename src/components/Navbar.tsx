@@ -15,7 +15,7 @@ const navLinks = [
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  const { publishedConfig, toggleColorMode } = useSiteStore();
+  const { publishedConfig } = useSiteStore();
 
   // Instant direct resolution from standalone brand store
   const brand: FooterConfig = useMemo(() => {
@@ -36,8 +36,6 @@ export function Navbar() {
     };
   }, [publishedConfig.footer]);
 
-  const isLight = publishedConfig.theme.colorMode === "light";
-
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
@@ -47,7 +45,7 @@ export function Navbar() {
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 px-3 pt-3 md:px-6 md:pt-4">
+    <header className="dark-scope fixed top-0 left-0 right-0 z-50 px-3 pt-3 md:px-6 md:pt-4">
       <div className="mx-auto max-w-7xl">
         <motion.nav
           initial={{ y: -30, opacity: 0 }}
@@ -77,12 +75,12 @@ export function Navbar() {
 
             {(brand.logoType !== "image" || brand.showBrandNameWithLogo !== false) && (
               <div className="flex flex-col leading-none">
-                <span className={cn("text-[15px] font-semibold tracking-tight", isLight ? "text-slate-900" : "text-white")}>
+                <span className="text-[15px] font-semibold tracking-tight text-white">
                   {brand.brandTitle || "Teen Patti"}{" "}
                   {brand.brandAccent && <span className="gradient-text-gold">{brand.brandAccent}</span>}
                 </span>
                 {brand.brandSubtitle && (
-                  <span className={cn("text-[10px] uppercase tracking-[0.18em]", isLight ? "text-slate-500" : "text-white/40")}>
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-white/40">
                     {brand.brandSubtitle}
                   </span>
                 )}
@@ -96,45 +94,18 @@ export function Navbar() {
               <a
                 key={l.label}
                 href={l.href}
-                className={cn(
-                  "rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors",
-                  isLight
-                    ? "text-slate-700 hover:text-slate-950 hover:bg-black/5"
-                    : "text-white/70 hover:text-white"
-                )}
+                className="rounded-full px-3.5 py-1.5 text-xs font-medium text-white/70 hover:text-white hover:bg-white/5 transition-colors"
               >
                 {l.label}
               </a>
             ))}
           </div>
 
-          {/* CTA & Theme Mode Switcher */}
+          {/* CTA */}
           <div className="hidden items-center gap-2 md:flex">
-            {/* Theme Toggle Button */}
-            <button
-              onClick={toggleColorMode}
-              className={cn(
-                "grid h-9 w-9 place-items-center rounded-full border transition-all",
-                isLight
-                  ? "border-slate-300 bg-slate-100 text-slate-800 hover:bg-slate-200"
-                  : "border-white/10 bg-white/5 text-white/80 hover:border-emerald-400/30 hover:bg-emerald-400/10 hover:text-emerald-300"
-              )}
-              title={`Switch to ${isLight ? "Dark" : "Light"} Mode`}
-              aria-label="Toggle theme mode"
-            >
-              {isLight ? (
-                <Moon className="h-4 w-4 text-slate-700" />
-              ) : (
-                <Sun className="h-4 w-4 text-amber-300" />
-              )}
-            </button>
-
             <a
               href="#download"
-              className={cn(
-                "rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                isLight ? "text-slate-700 hover:text-slate-950" : "text-white/80 hover:text-white"
-              )}
+              className="rounded-full px-4 py-2 text-sm font-medium text-white/80 hover:text-white transition-colors"
             >
               Sign In
             </a>
@@ -150,29 +121,7 @@ export function Navbar() {
           {/* Mobile toggle */}
           <div className="flex items-center gap-2 md:hidden">
             <button
-              onClick={toggleColorMode}
-              className={cn(
-                "grid h-10 w-10 place-items-center rounded-lg border",
-                isLight
-                  ? "border-slate-300 bg-slate-100 text-slate-800"
-                  : "border-white/10 bg-white/5 text-white/80"
-              )}
-              aria-label="Toggle theme mode"
-            >
-              {isLight ? (
-                <Moon className="h-4 w-4 text-slate-700" />
-              ) : (
-                <Sun className="h-4 w-4 text-amber-300" />
-              )}
-            </button>
-
-            <button
-              className={cn(
-                "grid h-10 w-10 place-items-center rounded-lg border",
-                isLight
-                  ? "border-slate-300 bg-slate-100 text-slate-800"
-                  : "border-white/10 bg-white/5 text-white"
-              )}
+              className="grid h-10 w-10 place-items-center rounded-lg border border-white/10 bg-white/5 text-white"
               onClick={() => setOpen((v) => !v)}
               aria-label="Toggle menu"
             >
@@ -189,12 +138,7 @@ export function Navbar() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.98 }}
               transition={{ duration: 0.2 }}
-              className={cn(
-                "mt-2 overflow-hidden rounded-2xl border p-3 md:hidden",
-                isLight
-                  ? "border-slate-200 bg-white/95 text-slate-900 shadow-xl backdrop-blur-xl"
-                  : "glass-strong border-white/10 text-white"
-              )}
+              className="mt-2 overflow-hidden rounded-2xl border glass-strong border-white/10 text-white p-3 md:hidden shadow-2xl backdrop-blur-xl"
             >
               <div className="flex flex-col">
                 {navLinks.map((l) => (
@@ -202,21 +146,15 @@ export function Navbar() {
                     key={l.label}
                     href={l.href}
                     onClick={() => setOpen(false)}
-                    className={cn(
-                      "rounded-xl px-4 py-3 text-sm font-medium",
-                      isLight ? "text-slate-800 hover:bg-slate-100" : "text-white/80 hover:bg-white/5 hover:text-white"
-                    )}
+                    className="rounded-xl px-4 py-3 text-sm font-medium text-white/80 hover:bg-white/5 hover:text-white"
                   >
                     {l.label}
                   </a>
                 ))}
-                <div className={cn("mt-2 flex flex-col gap-2 border-t p-2", isLight ? "border-slate-200" : "border-white/10")}>
+                <div className="mt-2 flex flex-col gap-2 border-t border-white/10 p-2">
                   <a
                     href="#download"
-                    className={cn(
-                      "rounded-xl px-4 py-3 text-center text-sm font-medium",
-                      isLight ? "text-slate-700 hover:bg-slate-100" : "text-white/80 hover:bg-white/5"
-                    )}
+                    className="rounded-xl px-4 py-3 text-center text-sm font-medium text-white/80 hover:bg-white/5"
                   >
                     Sign In
                   </a>

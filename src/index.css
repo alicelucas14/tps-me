@@ -148,19 +148,7 @@ html {
   background-color: transparent !important;
 }
 
-/* Navbar / header */
-.theme-light nav,
-.theme-light header:not([data-theme="dark"]) {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-  border-color: rgba(0, 0, 0, 0.08) !important;
-  backdrop-filter: blur(20px);
-}
-
-.theme-light nav a,
-.theme-light nav span,
-.theme-light nav button {
-  color: #0f172a !important;
-}
+/* Navbar / header remains dark-scoped */
 
 /* bg-black/40, bg-black/60 etc */
 .theme-light .bg-black\/40,
