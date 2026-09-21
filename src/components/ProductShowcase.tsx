@@ -116,7 +116,7 @@ function TableVisual({
   activeTablesCount?: string;
 }) {
   return (
-    <div className="relative mx-auto aspect-[4/3] w-full max-w-[620px]">
+    <div className="dark-scope relative mx-auto aspect-[4/3] w-full max-w-[620px]">
       {/* Table felt */}
       <div className="absolute inset-0 overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-br from-[#0a1f1a] via-[#041512] to-[#020806] shadow-[0_40px_120px_-30px_rgba(0,0,0,0.8)]">
         {/* Radial felt */}

@@ -1125,14 +1125,28 @@ function SectionInspector({
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <InputField
-                      label="Android CTA"
+                      label="Android CTA Text"
                       value={d.androidCta}
                       onChange={(v) => onUpdateProperty("androidCta", v)}
                     />
                     <InputField
-                      label="iOS CTA"
+                      label="iOS CTA Text"
                       value={d.iosCta}
                       onChange={(v) => onUpdateProperty("iosCta", v)}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <InputField
+                      label="Android APK Link / URL"
+                      placeholder="https://.../app.apk"
+                      value={d.androidLink || ""}
+                      onChange={(v) => onUpdateProperty("androidLink", v)}
+                    />
+                    <InputField
+                      label="iOS App Store Link / URL"
+                      placeholder="https://apps.apple.com/..."
+                      value={d.iosLink || ""}
+                      onChange={(v) => onUpdateProperty("iosLink", v)}
                     />
                   </div>
                   <InputField

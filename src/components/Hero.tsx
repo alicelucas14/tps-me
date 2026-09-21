@@ -158,7 +158,7 @@ function HeroVisual({
   tablePlayers?: string;
 }) {
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-[560px]">
+    <div className="dark-scope relative mx-auto aspect-square w-full max-w-[560px]">
       {/* Glow behind */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/20 blur-[100px] animate-glow" />

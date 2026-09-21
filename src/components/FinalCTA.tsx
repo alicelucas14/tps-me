@@ -15,12 +15,19 @@ export function FinalCTA({ dynamicData }: { dynamicData?: FinalCTASectionData })
     iosCta: "App Store (iOS)",
     promoCode: "₹500 BONUS",
     smsText: "Or text STARS to 56161 for a download link",
+    androidLink: "#download",
+    iosLink: "#download",
   };
+
+  const androidUrl = d.androidLink || d.primaryCtaLink || "#download";
+  const iosUrl = d.iosLink || "#download";
+  const isAndroidExternal = androidUrl.startsWith("http://") || androidUrl.startsWith("https://") || androidUrl.endsWith(".apk");
+  const isIosExternal = iosUrl.startsWith("http://") || iosUrl.startsWith("https://");
 
   return (
     <section id="download" className="relative overflow-hidden py-24 md:py-32">
       <div className="mx-auto w-full max-w-7xl px-6">
-        <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-br from-[#0a1f1a] via-[#05080a] to-[#05080a] p-8 md:p-16">
+        <div className="dark-scope relative overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-br from-[#0a1f1a] via-[#05080a] to-[#05080a] p-8 md:p-16">
           {/* Ambient */}
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-emerald-500/20 blur-[120px] animate-float-slow" />
@@ -82,17 +89,21 @@ export function FinalCTA({ dynamicData }: { dynamicData?: FinalCTASectionData })
               <FadeIn delay={0.15}>
                 <div className="mt-8 flex flex-wrap items-center gap-3">
                   <a
-                    href="#download"
+                    href={androidUrl}
+                    target={isAndroidExternal ? "_blank" : undefined}
+                    rel={isAndroidExternal ? "noopener noreferrer" : undefined}
                     className="group inline-flex h-14 items-center gap-3 rounded-full bg-gradient-to-b from-[#ffd96b] via-[#f5c242] to-[#c98a1a] px-7 text-[15px] font-semibold text-[#1a1205] btn-gold-glow transition-all hover:brightness-110"
                   >
                     <Download className="h-5 w-5" />
                     {d.androidCta || "Download for Android"}
                   </a>
                   <a
-                    href="#download"
+                    href={iosUrl}
+                    target={isIosExternal ? "_blank" : undefined}
+                    rel={isIosExternal ? "noopener noreferrer" : undefined}
                     className="group inline-flex h-14 items-center gap-3 rounded-full border border-white/15 bg-white/5 px-7 text-[15px] font-medium text-white transition-all hover:bg-white/10 hover:border-white/25"
                   >
-                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+                    <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current text-white">
                       <path d="M17.05 12.04c-.02-2.44 2-3.62 2.09-3.68-1.14-1.67-2.92-1.9-3.55-1.92-1.51-.15-2.95.89-3.71.89-.77 0-1.95-.87-3.21-.85-1.66.02-3.19.97-4.04 2.46-1.73 3-.44 7.42 1.24 9.85.82 1.19 1.79 2.52 3.06 2.47 1.23-.05 1.69-.79 3.18-.79 1.48 0 1.9.79 3.2.77 1.32-.02 2.15-1.21 2.96-2.4.94-1.38 1.33-2.71 1.35-2.78-.03-.01-2.58-1-2.61-3.93M14.3 4.83c.68-.82 1.13-1.96 1.01-3.1-.98.04-2.16.65-2.86 1.47-.62.72-1.17 1.88-1.03 2.99 1.09.09 2.2-.55 2.88-1.36" />
                     </svg>
                     {d.iosCta || "App Store (iOS)"}
@@ -146,9 +157,8 @@ export function FinalCTA({ dynamicData }: { dynamicData?: FinalCTASectionData })
                         return (
                           <div
                             key={i}
-                            className={`aspect-square ${
-                              filled ? "bg-[#05080a]" : "bg-transparent"
-                            }`}
+                            className="aspect-square"
+                            style={{ backgroundColor: filled ? "#05080a" : "transparent" }}
                           />
                         );
                       })}

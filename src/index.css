@@ -255,6 +255,91 @@ html {
   color: #1a1205 !important;
 }
 
+/* ——————————————————————————————————————————————————————
+   DARK SCOPE (PROTECTS DARK CONTAINERS, CTA BANNERS, MOCKUPS IN LIGHT THEME)
+   —————————————————————————————————————————————————————— */
+.theme-light .dark-scope,
+[data-theme="light"] .dark-scope,
+.dark-scope {
+  color: #ffffff;
+}
+
+.theme-light .dark-scope h1,
+.theme-light .dark-scope h2,
+.theme-light .dark-scope h3,
+.theme-light .dark-scope h4,
+.theme-light .dark-scope h5,
+.theme-light .dark-scope h6,
+.theme-light .dark-scope .text-white,
+.theme-light .dark-scope span.text-white,
+.theme-light .dark-scope a.text-white,
+.theme-light .dark-scope div.text-white {
+  color: #ffffff !important;
+}
+
+.theme-light .dark-scope p,
+.theme-light .dark-scope .text-white\/60,
+.theme-light .dark-scope .text-white\/65 {
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+.theme-light .dark-scope .text-white\/70,
+.theme-light .dark-scope .text-white\/80,
+.theme-light .dark-scope .text-white\/90 {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.theme-light .dark-scope .text-white\/50 {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.theme-light .dark-scope .text-white\/40,
+.theme-light .dark-scope .text-white\/30,
+.theme-light .dark-scope .text-white\/20 {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Dark glass and card surfaces inside dark scope */
+.theme-light .dark-scope .glass-strong,
+.dark-scope .glass-strong {
+  background: rgba(12, 24, 21, 0.85) !important;
+  backdrop-filter: blur(24px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5) !important;
+}
+
+.theme-light .dark-scope .glass,
+.dark-scope .glass {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.theme-light .dark-scope .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.theme-light .dark-scope .bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.theme-light .dark-scope .border-white\/10 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.theme-light .dark-scope .border-white\/15 {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.theme-light .dark-scope .border-white\/20 {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.theme-light .dark-scope .bg-\[\#05080a\],
+.theme-light .dark-scope div[class*="bg-\[\#05080a\]"] {
+  background-color: #05080a !important;
+}
+
 /* Footer */
 .theme-light footer,
 [data-theme="light"] footer {
