@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useSiteStore, type PostConfig } from "../store/siteStore";
 import { MarkdownRenderer } from "./MarkdownRenderer";
+import { getPostCoverImage, handleImageError } from "../utils/imageFallback";
 
 const POSTS_PER_PAGE = 12;
 
@@ -180,19 +181,16 @@ export function BlogView({
                 href={`/blog/${post.slug}`}
                 className="group flex flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-xl transition-all hover:-translate-y-1 hover:border-emerald-400/40 hover:bg-white/[0.04] shadow-lg"
               >
-                {post.coverImage && (
-                  <div className="relative h-44 w-full overflow-hidden bg-black/40 border-b border-white/10">
-                    <img
-                      src={post.coverImage}
-                      alt={post.title}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = "none";
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#06090c] via-transparent to-transparent" />
-                  </div>
-                )}
+                <div className="relative h-48 w-full overflow-hidden bg-black/40 border-b border-white/10">
+                  <img
+                    src={getPostCoverImage(post)}
+                    alt={post.title}
+                    loading="lazy"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    onError={(e) => handleImageError(e)}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#06090c] via-transparent to-transparent opacity-80" />
+                </div>
                 <div className="p-6">
                   <div className="flex items-center justify-between">
                     <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-0.5 text-xs font-semibold text-emerald-300">
@@ -454,18 +452,14 @@ function SinglePostView({
             </div>
 
             {/* Featured Image */}
-            {post.coverImage && (
-              <div className="overflow-hidden rounded-3xl border border-white/10 bg-black/40 shadow-2xl">
-                <img
-                  src={post.coverImage}
-                  alt={post.title}
-                  className="w-full max-h-[500px] object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = "none";
-                  }}
-                />
-              </div>
-            )}
+            <div className="overflow-hidden rounded-3xl border border-white/10 bg-black/40 shadow-2xl">
+              <img
+                src={getPostCoverImage(post)}
+                alt={post.title}
+                className="w-full max-h-[500px] object-cover"
+                onError={(e) => handleImageError(e)}
+              />
+            </div>
 
             {/* Markdown Body */}
             <div className="rounded-3xl border border-white/5 bg-white/[0.015] p-6 md:p-8 backdrop-blur-sm">
@@ -626,18 +620,15 @@ function SinglePostView({
                     }}
                     className="group flex items-start gap-3 rounded-xl p-2 transition-all hover:bg-white/5"
                   >
-                    {rPost.coverImage && (
-                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-black/40 border border-white/10">
-                        <img
-                          src={rPost.coverImage}
-                          alt={rPost.title}
-                          className="h-full w-full object-cover group-hover:scale-105 transition-transform"
-                          onError={(e) => {
-                            (e.target as HTMLElement).style.display = "none";
-                          }}
-                        />
-                      </div>
-                    )}
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-black/40 border border-white/10">
+                      <img
+                        src={getPostCoverImage(rPost)}
+                        alt={rPost.title}
+                        loading="lazy"
+                        className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                        onError={(e) => handleImageError(e)}
+                      />
+                    </div>
                     <div className="min-w-0 flex-1">
                       <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
                         {rPost.category || "Strategy"}

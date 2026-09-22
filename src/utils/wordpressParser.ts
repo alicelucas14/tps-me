@@ -2,7 +2,7 @@
  * Utility for parsing and importing WordPress content (XML exports, REST API, or raw HTML/Gutenberg blocks)
  * and converting it into clean, high-performance Markdown for Teen Patti Stars.
  */
-
+import { isBrokenImageUrl, getPostCoverImage } from "./imageFallback";
 export interface ParsedWordPressPost {
   title: string;
   slug: string;
@@ -221,7 +221,7 @@ export function parseWordPressXml(xmlString: string): ParsedWordPressPost[] {
       }
     });
 
-    const category = categories[0] || (postType === "page" ? "Page" : "Strategy Guide");
+    const category = categories[0] || (postType === "page" ? "Page" : "General");
 
     // Convert HTML to Markdown
     const content = htmlToMarkdown(rawContent);
@@ -256,9 +256,9 @@ export function parseWordPressXml(xmlString: string): ParsedWordPressPost[] {
       }
     }
 
-    // Fallback preset if still empty
-    if (!coverImage) {
-      coverImage = "https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=1200&q=80";
+    // Fallback preset if still empty or broken
+    if (isBrokenImageUrl(coverImage)) {
+      coverImage = getPostCoverImage({ title, category, slug });
     }
 
     // Read time calculation
@@ -301,6 +301,9 @@ export function parseRawHtmlPost(titleInput: string, rawHtml: string): ParsedWor
   if (imgMatch && imgMatch[1]) {
     coverImage = imgMatch[1];
   }
+  if (isBrokenImageUrl(coverImage)) {
+    coverImage = getPostCoverImage({ title: titleInput, category: "Strategy Guide" });
+  }
 
   const plainText = stripHtml(rawHtml);
   const excerpt = plainText.slice(0, 160) + (plainText.length > 160 ? "..." : "");
@@ -315,7 +318,7 @@ export function parseRawHtmlPost(titleInput: string, rawHtml: string): ParsedWor
     rawHtml,
     author: "Teen Patti Strategy Team",
     date: new Date().toISOString().split("T")[0],
-    category: "Strategy Guide",
+    category: "General",
     readTime,
     coverImage,
     badge: "Imported",
@@ -375,13 +378,16 @@ export async function fetchWordPressPostByUrl(targetUrl: string): Promise<Parsed
           coverImage = imgMatch[1];
         }
       }
+      if (isBrokenImageUrl(coverImage)) {
+        coverImage = getPostCoverImage({ title, slug: wp.slug });
+      }
 
       // Author name
       const author = wp._embedded?.author?.[0]?.name || "Teen Patti Editorial Team";
 
       // Category
       const termCategories = wp._embedded?.["wp:term"]?.[0] || [];
-      const category = termCategories[0]?.name || "Strategy Guide";
+      const category = termCategories[0]?.name || "General";
 
       const words = content.split(/\s+/).length;
       const readMinutes = Math.max(1, Math.ceil(words / 200));

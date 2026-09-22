@@ -1,5 +1,6 @@
 import { ArrowLeft, Calendar, FileText, CheckCircle2, ChevronRight, Download } from "lucide-react";
 import { MarkdownRenderer } from "./MarkdownRenderer";
+import { getPageCoverImage, handleImageError } from "../utils/imageFallback";
 
 export interface PageViewProps {
   page: {
@@ -128,18 +129,14 @@ export function PageView({ page, onBack }: PageViewProps) {
         </div>
 
         {/* Featured Cover Image if Available */}
-        {page.coverImage && (
-          <div className="mt-8 overflow-hidden rounded-3xl border border-white/10 bg-black/40 shadow-2xl">
-            <img
-              src={page.coverImage}
-              alt={page.title}
-              className="w-full max-h-[480px] object-cover"
-              onError={(e) => {
-                (e.target as HTMLElement).style.display = "none";
-              }}
-            />
-          </div>
-        )}
+        <div className="mt-8 overflow-hidden rounded-3xl border border-white/10 bg-black/40 shadow-2xl">
+          <img
+            src={getPageCoverImage(page)}
+            alt={page.title}
+            className="w-full max-h-[480px] object-cover"
+            onError={(e) => handleImageError(e)}
+          />
+        </div>
 
         {/* Main Body Content */}
         <div className="mt-10 rounded-3xl border border-white/10 bg-white/[0.02] p-6 md:p-10 backdrop-blur-xl shadow-xl">

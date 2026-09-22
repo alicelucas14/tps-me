@@ -2,6 +2,7 @@ import { create } from "zustand";
 import rawWpPosts from "../data/wpPosts.json";
 import rawWpPages from "../data/wpPages.json";
 import defaultLogoUrl from "../assets/logo.png";
+import { getPostCoverImage, getPageCoverImage } from "../utils/imageFallback";
 
 export type DeviceMode = "desktop" | "tablet" | "mobile";
 export type EditorTab = "elements" | "navigator" | "content" | "style" | "settings";
@@ -1057,6 +1058,7 @@ The hallmark of a master player is the ability to fold a decent hand when mathem
     category: "Strategy Guide",
     readTime: "4 min read",
     coverColor: "from-emerald-600 to-teal-900",
+    coverImage: "https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=1200&q=80",
     badge: "Popular",
     status: "published",
   },
@@ -1081,6 +1083,7 @@ Even on national bank holidays and Sunday evenings, our multi-gateway failover r
     category: "Engineering & Trust",
     readTime: "3 min read",
     coverColor: "from-amber-600 to-rose-900",
+    coverImage: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=1200&q=80",
     badge: "Tech Spotlight",
     status: "published",
   },
@@ -1104,6 +1107,7 @@ Top 50 finalists receive complimentary 5-star hotel accommodations at Taj Exotic
     category: "Tournaments",
     readTime: "2 min read",
     coverColor: "from-purple-600 to-indigo-900",
+    coverImage: "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=1200&q=80",
     badge: "Events",
     status: "published",
   },
@@ -1133,6 +1137,7 @@ const convertedWpPages: PageConfig[] = (rawWpPages as any[]).map((p, idx) => {
     excerpt: cleanExcerptText,
     content: p.content,
     status: "published" as const,
+    coverImage: getPageCoverImage(p),
     createdAt: p.date || "2026-01-01",
     seo: {
       title: `${p.title} | Teen Patti Stars`,
@@ -1159,12 +1164,19 @@ const convertedWpPages: PageConfig[] = (rawWpPages as any[]).map((p, idx) => {
 export const allSitePosts: PostConfig[] = [
   ...(rawWpPosts as PostConfig[]),
   ...defaultPosts.filter((dp) => !(rawWpPosts as any[]).some((wp) => wp.slug === dp.slug)),
-];
+].map((p) => ({
+  ...p,
+  coverImage: getPostCoverImage(p),
+}));
 
 export const allSitePages: PageConfig[] = [
   ...defaultPages,
   ...convertedWpPages.filter((cp) => !defaultPages.some((dp) => dp.slug === cp.slug)),
-];
+].map((cp) => ({
+  ...cp,
+  coverImage: getPageCoverImage(cp),
+}));
+
 
 export const defaultFooterConfig: FooterConfig = {
   brandTitle: "Teen Patti",
@@ -1435,10 +1447,18 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
         }
       });
     }
-    published.pages = deduplicatePages(published.pages);
+    published.pages = deduplicatePages(published.pages).map((p: PageConfig) => ({
+      ...p,
+      coverImage: getPageCoverImage(p),
+    }));
 
     if (!published.posts || published.posts.length < allSitePosts.length) {
       published.posts = allSitePosts;
+    } else {
+      published.posts = published.posts.map((p: PostConfig) => ({
+        ...p,
+        coverImage: getPostCoverImage(p),
+      }));
     }
     if (!published.currentPageId) published.currentPageId = "page_home";
     if (!published.sections) published.sections = defaultLandingSections;
@@ -1487,11 +1507,20 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
         }
       });
     }
-    draft.pages = deduplicatePages(draft.pages);
+    draft.pages = deduplicatePages(draft.pages).map((p: PageConfig) => ({
+      ...p,
+      coverImage: getPageCoverImage(p),
+    }));
 
     if (!draft.posts || draft.posts.length < allSitePosts.length) {
       draft.posts = allSitePosts;
+    } else {
+      draft.posts = draft.posts.map((p: PostConfig) => ({
+        ...p,
+        coverImage: getPostCoverImage(p),
+      }));
     }
+
     if (!draft.currentPageId) draft.currentPageId = "page_home";
     if (!draft.sections) draft.sections = defaultLandingSections;
     if (!draft.theme) draft.theme = defaultSiteConfig.theme;
@@ -1896,6 +1925,7 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
         updatedPosts[existingIdx] = {
           ...updatedPosts[existingIdx],
           ...postData,
+          coverImage: postData.coverImage ? getPostCoverImage(postData) : updatedPosts[existingIdx].coverImage,
         };
         pushHistory({ ...draftConfig, posts: updatedPosts });
         return;
@@ -1903,6 +1933,7 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
 
       const newPost: PostConfig = {
         ...postData,
+        coverImage: getPostCoverImage(postData),
         id: `post_${Date.now()}`,
       };
       const newPosts = [newPost, ...draftConfig.posts];
@@ -1923,11 +1954,13 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
           currentPosts[existingIdx] = {
             ...currentPosts[existingIdx],
             ...p,
+            coverImage: getPostCoverImage(p),
           };
         } else {
           // Append unique post
           currentPosts.unshift({
             ...p,
+            coverImage: getPostCoverImage(p),
             id: `post_${Date.now()}_${idx}`,
           });
         }

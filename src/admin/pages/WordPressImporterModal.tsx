@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import {
   Upload,
   Link as LinkIcon,
@@ -23,6 +23,7 @@ import {
 } from "../../utils/wordpressParser";
 import { MarkdownRenderer } from "../../components/MarkdownRenderer";
 import { useSiteStore } from "../../store/siteStore";
+import { handleImageError, getPostCoverImage, isBrokenImageUrl } from "../../utils/imageFallback";
 
 interface WordPressImporterModalProps {
   isOpen: boolean;
@@ -73,6 +74,30 @@ export function WordPressImporterModal({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Dynamic categories collected from all existing posts on the site
+  const availableCategories = useMemo(() => {
+    const cats = new Set<string>();
+    (draftConfig.posts || []).forEach((p) => {
+      if (p.category && p.category.trim()) cats.add(p.category.trim());
+    });
+    [
+      "General",
+      "Rummy",
+      "Teen Patti",
+      "Indian Poker",
+      "Teen Patti Variations",
+      "Online Poker Tournaments",
+      "Online Poker Platforms",
+      "Poker Game",
+      "Rummy Platforms",
+      "lucky lottery",
+      "Lottery Lucky Number",
+      "Teen Patti Stars",
+      "Strategy Guide",
+    ].forEach((c) => cats.add(c));
+    return Array.from(cats);
+  }, [draftConfig.posts]);
+
   if (!isOpen) return null;
 
   const loadPostAtIndex = (idx: number, postsList: ParsedWordPressPost[]) => {
@@ -81,9 +106,13 @@ export function WordPressImporterModal({
     setCurrentIndex(idx);
     setActiveTitle(p.title);
     setActiveSlug(p.slug);
-    setActiveCategory(p.category);
-    setActiveAuthor(p.author);
-    setActiveCoverImage(p.coverImage || "");
+    setActiveCategory(p.category || "General");
+    setActiveAuthor(p.author || "Teen Patti Strategy Team");
+    const validCover =
+      p.coverImage && !isBrokenImageUrl(p.coverImage)
+        ? p.coverImage
+        : getPostCoverImage(p);
+    setActiveCoverImage(validCover);
     setActiveExcerpt(p.excerpt);
     setActiveMarkdown(p.content);
     setActiveStatus(p.status || "published");
@@ -201,17 +230,26 @@ export function WordPressImporterModal({
       );
     } else {
       // Create as blog post
+      const finalCover =
+        activeCoverImage && !isBrokenImageUrl(activeCoverImage)
+          ? activeCoverImage
+          : getPostCoverImage({
+              title: activeTitle,
+              category: activeCategory || "General",
+              slug: activeSlug,
+            });
+
       createPost({
         title: activeTitle,
         slug: activeSlug.replace(/^\//, ""),
         excerpt: activeExcerpt,
         content: activeMarkdown,
-        author: activeAuthor,
+        author: activeAuthor || "Teen Patti Strategy Team",
         date: new Date().toISOString().split("T")[0],
-        category: activeCategory,
+        category: activeCategory || "General",
         readTime: `${Math.max(1, Math.ceil(activeMarkdown.split(/\s+/).length / 200))} min read`,
         coverColor: "from-amber-500/20 to-emerald-500/20",
-        coverImage: activeCoverImage || undefined,
+        coverImage: finalCover,
         badge: "WP Import",
         status: activeStatus,
       });
@@ -254,12 +292,15 @@ export function WordPressImporterModal({
           slug: p.slug.replace(/^\//, ""),
           excerpt: p.excerpt,
           content: p.content,
-          author: p.author,
+          author: p.author || "Teen Patti Strategy Team",
           date: p.date || new Date().toISOString().split("T")[0],
-          category: p.category,
+          category: p.category || "General",
           readTime: p.readTime,
           coverColor: "from-amber-500/20 to-emerald-500/20",
-          coverImage: p.coverImage || undefined,
+          coverImage:
+            p.coverImage && !isBrokenImageUrl(p.coverImage)
+              ? p.coverImage
+              : getPostCoverImage(p),
           badge: "WP Batch Import",
           status: p.status,
         }))
@@ -693,10 +734,17 @@ export function WordPressImporterModal({
                       <label className="text-[11px] font-medium text-white/60">Category / Type</label>
                       <input
                         type="text"
+                        list="importer-category-list"
                         value={activeCategory}
                         onChange={(e) => setActiveCategory(e.target.value)}
+                        placeholder="e.g. General, Rummy, Teen Patti..."
                         className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-white focus:border-emerald-400 focus:outline-none"
                       />
+                      <datalist id="importer-category-list">
+                        {availableCategories.map((cat) => (
+                          <option key={cat} value={cat} />
+                        ))}
+                      </datalist>
                     </div>
 
                     <div>
@@ -739,9 +787,7 @@ export function WordPressImporterModal({
                               src={activeCoverImage}
                               alt="Cover"
                               className="h-full w-full object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLElement).style.display = "none";
-                              }}
+                              onError={(e) => handleImageError(e)}
                             />
                           </div>
                         )}

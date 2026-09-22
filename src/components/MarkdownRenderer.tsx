@@ -1,5 +1,6 @@
 import React from "react";
 import { ExternalLink } from "lucide-react";
+import { resolveContentImageUrl, handleImageError } from "../utils/imageFallback";
 
 interface MarkdownRendererProps {
   content: string;
@@ -80,10 +81,17 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
         // Standalone Image: ![alt](url) or loose !alt(url)
         const imageMatch = trimmed.match(/^!?\[?([^\]]*)\]?\((https?:\/\/[^)]+)\)$/i);
         if (imageMatch && (trimmed.startsWith("!") || /\.(png|jpe?g|webp|gif)/i.test(imageMatch[2]))) {
-          const [, alt, src] = imageMatch;
+          const [, alt, rawSrc] = imageMatch;
+          const src = resolveContentImageUrl(rawSrc, alt);
           return (
             <figure key={idx} className="my-6 overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-2xl">
-              <img src={src} alt={alt || "Illustration"} className="w-full object-cover max-h-[480px]" />
+              <img
+                src={src}
+                alt={alt || "Illustration"}
+                className="w-full object-cover max-h-[480px]"
+                loading="lazy"
+                onError={(e) => handleImageError(e)}
+              />
               {alt && alt.trim() && (
                 <figcaption className="px-4 py-2 text-center text-xs text-white/50 bg-black/60 border-t border-white/5">
                   {alt.replace(/!featured image - /i, "")}

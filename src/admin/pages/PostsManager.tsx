@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import {
   BookOpen,
   Plus,
@@ -24,10 +24,12 @@ import {
   Check,
   X,
   Upload,
+  Search,
 } from "lucide-react";
 import { useSiteStore, type PostConfig } from "../../store/siteStore";
 import { MarkdownRenderer } from "../../components/MarkdownRenderer";
 import { WordPressImporterModal } from "./WordPressImporterModal";
+import { getPostCoverImage, handleImageError } from "../../utils/imageFallback";
 
 const PRESET_IMAGES = [
   {
@@ -93,6 +95,69 @@ export function PostsManager() {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFilterCategory, setSelectedFilterCategory] = useState("All");
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+
+  // Dynamic categories collected from all posts (synchronous with frontend categories + any custom ones)
+  const availableCategories = useMemo(() => {
+    const cats = new Set<string>();
+    // Add all existing categories from the post collection first
+    (draftConfig.posts || []).forEach((p) => {
+      if (p.category && p.category.trim()) cats.add(p.category.trim());
+    });
+    // Ensure all standard frontend categories are present
+    [
+      "General",
+      "Rummy",
+      "Teen Patti",
+      "Indian Poker",
+      "Teen Patti Variations",
+      "Online Poker Tournaments",
+      "Online Poker Platforms",
+      "Poker Game",
+      "Rummy Platforms",
+      "lucky lottery",
+      "Lottery Lucky Number",
+      "Teen Patti Stars",
+      "Strategy Guide",
+      "Tournaments",
+      "Engineering & Trust",
+      "VIP & Rewards",
+      "Game Updates",
+    ].forEach((c) => cats.add(c));
+    if (category && category.trim()) cats.add(category.trim());
+    return Array.from(cats);
+  }, [draftConfig.posts, category]);
+
+  // Categories list for filter chips (including "All")
+  const filterCategories = useMemo(() => {
+    const cats = new Set<string>();
+    (draftConfig.posts || []).forEach((p) => {
+      if (p.category && p.category.trim()) cats.add(p.category.trim());
+    });
+    return ["All", ...Array.from(cats)];
+  }, [draftConfig.posts]);
+
+  // Filtered posts for admin list
+  const filteredPosts = useMemo(() => {
+    let list = draftConfig.posts || [];
+    if (selectedFilterCategory !== "All") {
+      list = list.filter((p) => (p.category || "General") === selectedFilterCategory);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          p.excerpt.toLowerCase().includes(q) ||
+          p.author.toLowerCase().includes(q) ||
+          (p.category && p.category.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [draftConfig.posts, selectedFilterCategory, searchQuery]);
+
   const openCreateModal = () => {
     setEditingPostId(null);
     setTitle("");
@@ -101,7 +166,8 @@ export function PostsManager() {
     setContent("");
     setCoverImage("");
     setAuthor("Teen Patti Strategy Team");
-    setCategory("Strategy Guide");
+    setCategory(selectedFilterCategory !== "All" ? selectedFilterCategory : "General");
+    setIsCustomCategory(false);
     setReadTime("3 min read");
     setBadge("New");
     setShowAddModal(true);
@@ -115,7 +181,8 @@ export function PostsManager() {
     setContent(post.content);
     setCoverImage(post.coverImage || "");
     setAuthor(post.author);
-    setCategory(post.category);
+    setCategory(post.category || "General");
+    setIsCustomCategory(false);
     setReadTime(post.readTime);
     setBadge(post.badge);
     setShowAddModal(true);
@@ -242,22 +309,68 @@ export function PostsManager() {
         </div>
       </div>
 
+      {/* Search & Category Filter Controls */}
+      <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4 backdrop-blur-md">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/40 pointer-events-none" />
+            <input
+              type="text"
+              placeholder={`Search across ${draftConfig.posts.length} posts...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-black/40 py-2 pl-9 pr-3 text-xs text-white placeholder-white/30 focus:border-emerald-400 focus:outline-none"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-white/40 hover:text-white"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          <div className="text-xs text-white/50">
+            Showing <span className="font-bold text-white">{filteredPosts.length}</span> of{" "}
+            <span className="font-bold text-white">{draftConfig.posts.length}</span> posts
+          </div>
+        </div>
+
+        {/* Category Chips */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+          {filterCategories.slice(0, 14).map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedFilterCategory(cat)}
+              className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                selectedFilterCategory === cat
+                  ? "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow"
+                  : "border border-white/10 bg-white/[0.03] text-white/60 hover:border-white/20 hover:text-white"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Posts Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {draftConfig.posts.map((post) => (
+        {filteredPosts.map((post) => (
           <div
             key={post.id}
             className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] transition-all hover:border-emerald-400/30 shadow-lg"
           >
-            {post.coverImage && (
-              <div className="h-32 w-full overflow-hidden bg-black/40 border-b border-white/10">
-                <img
-                  src={post.coverImage}
-                  alt={post.title}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
-            )}
+            <div className="h-32 w-full overflow-hidden bg-black/40 border-b border-white/10">
+              <img
+                src={getPostCoverImage(post)}
+                alt={post.title}
+                loading="lazy"
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                onError={(e) => handleImageError(e)}
+              />
+            </div>
 
             <div className="p-5 flex-1 flex flex-col justify-between">
               <div>
@@ -425,20 +538,47 @@ export function PostsManager() {
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-white/50">
-                      Category
-                    </label>
-                    <select
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-white/10 bg-[#06090c] px-3 py-1.5 text-xs text-white focus:border-emerald-400 focus:outline-none"
-                    >
-                      <option value="Strategy Guide">Strategy Guide</option>
-                      <option value="Engineering & Trust">Engineering & Trust</option>
-                      <option value="Tournaments">Tournaments</option>
-                      <option value="VIP & Rewards">VIP & Rewards</option>
-                      <option value="Game Updates">Game Updates</option>
-                    </select>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-white/50">
+                        Category
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setIsCustomCategory(!isCustomCategory)}
+                        className="text-[10px] font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+                      >
+                        {isCustomCategory ? "← Pick from list" : "+ Custom category"}
+                      </button>
+                    </div>
+
+                    {isCustomCategory ? (
+                      <input
+                        type="text"
+                        placeholder="e.g. High Stakes, Teen Patti, Rummy..."
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        className="mt-1 w-full rounded-lg border border-white/10 bg-[#06090c] px-3 py-1.5 text-xs text-white focus:border-emerald-400 focus:outline-none"
+                      />
+                    ) : (
+                      <select
+                        value={category}
+                        onChange={(e) => {
+                          if (e.target.value === "__custom__") {
+                            setIsCustomCategory(true);
+                          } else {
+                            setCategory(e.target.value);
+                          }
+                        }}
+                        className="mt-1 w-full rounded-lg border border-white/10 bg-[#06090c] px-3 py-1.5 text-xs text-white focus:border-emerald-400 focus:outline-none"
+                      >
+                        {availableCategories.map((cat) => (
+                          <option key={cat} value={cat}>
+                            {cat}
+                          </option>
+                        ))}
+                        <option value="__custom__">+ Custom Category...</option>
+                      </select>
+                    )}
                   </div>
 
                   <div>
@@ -661,11 +801,14 @@ export function PostsManager() {
                         {title || "Untitled Article"}
                       </h1>
 
-                      {coverImage && (
-                        <div className="my-5 overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-xl">
-                          <img src={coverImage} alt={title} className="w-full max-h-64 object-cover" />
-                        </div>
-                      )}
+                      <div className="my-5 overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-xl">
+                        <img
+                          src={coverImage || getPostCoverImage({ title, category, slug })}
+                          alt={title}
+                          className="w-full max-h-64 object-cover"
+                          onError={(e) => handleImageError(e)}
+                        />
+                      </div>
 
                       <div className="my-4 flex items-center gap-2.5 border-y border-white/10 py-3 text-xs text-white/60">
                         <div className="grid h-7 w-7 place-items-center rounded-full bg-emerald-500/20 font-bold text-emerald-300 text-xs">
