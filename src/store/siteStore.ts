@@ -1382,20 +1382,34 @@ function safeLocalStorageSet(key: string, value: any) {
   try {
     if (typeof window === "undefined") return;
     let payload = value;
-    if (value && typeof value === "object" && value.sections) {
+    if (value && typeof value === "object") {
+      const cleanSlug = (s: string) => (s || "").replace(/^\/+|\/+$/g, "").toLowerCase();
+
       // Exclude static WP posts that are unmodified to stay well below 5MB quota
       const customPosts = (value.posts || []).filter(
         (p: any) =>
           !(rawWpPosts as any[]).some(
             (wp) =>
-              wp.slug === p.slug &&
+              cleanSlug(wp.slug) === cleanSlug(p.slug) &&
               wp.title === p.title &&
               wp.content === p.content
           )
       );
+
+      // Exclude static WP pages that are unmodified to stay well below 5MB quota
+      const customPages = (value.pages || []).filter(
+        (p: any) =>
+          !p.isHome &&
+          p.id !== "page_home" &&
+          !(rawWpPages as any[]).some(
+            (wp) => cleanSlug(wp.slug) === cleanSlug(p.slug)
+          )
+      );
+
       payload = stripAndSaveBlobs({
         ...value,
         posts: customPosts,
+        pages: customPages,
       });
     }
     localStorage.setItem(key, typeof payload === "string" ? payload : JSON.stringify(payload));
@@ -1559,6 +1573,7 @@ interface SiteStoreState {
   history: SiteConfig[];
   historyIndex: number;
   hasUnsavedChanges: boolean;
+  isServerConfigLoaded: boolean;
 
   // Builder UI state
   selectedSectionId: string | null;
@@ -1642,6 +1657,7 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
     history: [initial.draft],
     historyIndex: 0,
     hasUnsavedChanges: JSON.stringify(initial.published) !== JSON.stringify(initial.draft),
+    isServerConfigLoaded: false,
 
     selectedSectionId: "sec_hero",
     activeTab: "content",
@@ -2454,9 +2470,15 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
     loadServerConfig: async () => {
       try {
         const response = await fetch("/api/config", { cache: "no-store" });
-        if (!response.ok) return;
+        if (!response.ok) {
+          set({ isServerConfigLoaded: true });
+          return;
+        }
         const serverConfig = await response.json();
-        if (!serverConfig || typeof serverConfig !== "object") return;
+        if (!serverConfig || typeof serverConfig !== "object") {
+          set({ isServerConfigLoaded: true });
+          return;
+        }
 
         // Detach blobs from response and store them locally
         const { __blobs, ...config } = serverConfig;
@@ -2477,10 +2499,12 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
           history: [hydrated],
           historyIndex: 0,
           hasUnsavedChanges: false,
+          isServerConfigLoaded: true,
         });
       } catch (err) {
         // Server not reachable — silently fall back to localStorage
         console.info("[siteStore] Server config not available, using localStorage.");
+        set({ isServerConfigLoaded: true });
       }
     },
 

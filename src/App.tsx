@@ -76,7 +76,7 @@ function getActiveRouteString(): string {
 export default function App() {
   const [route, setRoute] = useState<string>(getActiveRouteString);
 
-  const { publishedConfig, draftConfig } = useSiteStore();
+  const { publishedConfig, draftConfig, isServerConfigLoaded } = useSiteStore();
   const { isAuthenticated } = useAdminAuthStore();
   const colorMode = publishedConfig.theme?.colorMode || draftConfig.theme?.colorMode || "dark";
 
@@ -339,9 +339,14 @@ export default function App() {
       return { type: "blog-single" as const, post: directPost, slug: directPost.slug };
     }
 
-    // 5. If specific non-home path not found, return not-found view instead of home hero
+    // 5. If not found yet, but server config is still fetching in background, wait and show loading
+    if (!isServerConfigLoaded) {
+      return { type: "loading" as const };
+    }
+
+    // 6. If specific non-home path not found, return not-found view instead of home hero
     return { type: "not-found" as const, slug: clean };
-  }, [route, allPages, allPosts]);
+  }, [route, allPages, allPosts, isServerConfigLoaded]);
 
   // Dynamic SEO & Metadata
   useEffect(() => {
@@ -548,6 +553,11 @@ export default function App() {
               page={resolved.page}
               onBack={() => navigateTo("/")}
             />
+          ) : resolved.type === "loading" ? (
+            <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 py-20">
+              <div className="w-10 h-10 border-2 border-amber-500/20 border-t-amber-400 rounded-full animate-spin mb-4" />
+              <p className="text-xs tracking-wider uppercase text-neutral-400 font-medium">Loading Teen Patti Stars...</p>
+            </div>
           ) : resolved.type === "not-found" ? (
             <div className="min-h-[70vh] flex items-center justify-center px-4 py-20">
               <div className="max-w-lg text-center rounded-3xl border border-white/10 bg-white/[0.03] p-8 md:p-12 backdrop-blur-xl">
