@@ -40,8 +40,24 @@ export function BlogView({
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [page, setPage] = useState(1);
 
-  const activePost = activeSlug
-    ? allPosts.find((p) => p.slug === activeSlug || p.id === activeSlug)
+  const cleanActiveSlug = (activeSlug || "")
+    .replace(/^blogs\//, "")
+    .replace(/^blog\//, "")
+    .replace(/^\/+|\/+$/g, "")
+    .toLowerCase()
+    .trim();
+
+  const activePost = cleanActiveSlug
+    ? allPosts.find((p) => {
+        const pSlug = (p.slug || "")
+          .replace(/^blogs\//, "")
+          .replace(/^blog\//, "")
+          .replace(/^\/+|\/+$/g, "")
+          .toLowerCase()
+          .trim();
+        const pId = (p.id || "").toLowerCase().trim();
+        return pSlug === cleanActiveSlug || pId === cleanActiveSlug;
+      })
     : null;
 
   // Extract all categories

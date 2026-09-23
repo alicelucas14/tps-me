@@ -248,15 +248,31 @@ export default function App() {
 
     // 1. Explicit blog route
     if (route.startsWith("blog/") || route.startsWith("blogs/")) {
-      const cleanPostSlug = clean.replace(/^blogs\//, "").replace(/^blog\//, "");
-      const post = allPosts.find(
-        (p) =>
-          p.slug === clean ||
-          p.id === clean ||
-          p.slug === leaf ||
-          p.id === leaf ||
-          p.slug === cleanPostSlug
-      );
+      const cleanPostSlug = clean
+        .replace(/^blogs\//, "")
+        .replace(/^blog\//, "")
+        .toLowerCase()
+        .trim();
+      const cleanTarget = clean.toLowerCase().trim();
+      const leafTarget = leaf.toLowerCase().trim();
+
+      const post = allPosts.find((p) => {
+        const pSlug = (p.slug || "")
+          .replace(/^blogs\//, "")
+          .replace(/^blog\//, "")
+          .replace(/^\/+|\/+$/g, "")
+          .toLowerCase()
+          .trim();
+        const pId = (p.id || "").toLowerCase().trim();
+        return (
+          pSlug === cleanTarget ||
+          pSlug === leafTarget ||
+          pSlug === cleanPostSlug ||
+          pId === cleanTarget ||
+          pId === leafTarget ||
+          (p.title && p.title.toLowerCase().trim() === cleanTarget)
+        );
+      });
       if (post) return { type: "blog-single" as const, post, slug: post.slug };
     }
 
@@ -300,14 +316,22 @@ export default function App() {
 
     // 4. Match against blog posts (direct slug without blog/ prefix)
     const directPost = allPosts.find((p) => {
-      const pSlug = (p.slug || "").replace(/^\/+|\/+$/g, "");
+      const pSlug = (p.slug || "")
+        .replace(/^blogs\//, "")
+        .replace(/^blog\//, "")
+        .replace(/^\/+|\/+$/g, "")
+        .toLowerCase()
+        .trim();
+      const cleanTarget = clean.toLowerCase().trim();
+      const leafTarget = leaf.toLowerCase().trim();
       return (
-        pSlug === clean ||
-        pSlug === leaf ||
-        pSlug === resolvedClean ||
-        pSlug === resolvedLeaf ||
-        p.id === clean ||
-        p.id === leaf
+        pSlug === cleanTarget ||
+        pSlug === leafTarget ||
+        pSlug === resolvedClean.toLowerCase().trim() ||
+        pSlug === resolvedLeaf.toLowerCase().trim() ||
+        (p.id && p.id.toLowerCase().trim() === cleanTarget) ||
+        (p.id && p.id.toLowerCase().trim() === leafTarget) ||
+        (p.title && p.title.toLowerCase().trim() === cleanTarget)
       );
     });
 

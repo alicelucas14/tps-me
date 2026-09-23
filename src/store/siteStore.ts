@@ -1383,9 +1383,15 @@ function safeLocalStorageSet(key: string, value: any) {
     if (typeof window === "undefined") return;
     let payload = value;
     if (value && typeof value === "object" && value.sections) {
-      // Exclude static WP posts from localStorage to stay well below 5MB quota
+      // Exclude static WP posts that are unmodified to stay well below 5MB quota
       const customPosts = (value.posts || []).filter(
-        (p: any) => !(rawWpPosts as any[]).some((wp) => wp.slug === p.slug)
+        (p: any) =>
+          !(rawWpPosts as any[]).some(
+            (wp) =>
+              wp.slug === p.slug &&
+              wp.title === p.title &&
+              wp.content === p.content
+          )
       );
       payload = stripAndSaveBlobs({
         ...value,
@@ -1452,14 +1458,35 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
       coverImage: getPageCoverImage(p),
     }));
 
-    if (!published.posts || published.posts.length < allSitePosts.length) {
-      published.posts = allSitePosts;
-    } else {
-      published.posts = published.posts.map((p: PostConfig) => ({
+    const mergePostsWithDefaults = (savedPosts: PostConfig[] | undefined): PostConfig[] => {
+      const custom = Array.isArray(savedPosts) ? savedPosts : [];
+      if (custom.length === 0) {
+        return allSitePosts;
+      }
+      const customSlugMap = new Map<string, PostConfig>();
+      custom.forEach((p) => {
+        const clean = (p.slug || "").replace(/^\/+|\/+$/g, "").toLowerCase();
+        if (clean) customSlugMap.set(clean, p);
+      });
+
+      // Keep custom posts
+      const merged: PostConfig[] = [...custom];
+
+      // Add default posts if not superseded by a custom post
+      for (const dp of allSitePosts) {
+        const dpClean = (dp.slug || "").replace(/^\/+|\/+$/g, "").toLowerCase();
+        if (!customSlugMap.has(dpClean)) {
+          merged.push(dp);
+        }
+      }
+
+      return merged.map((p) => ({
         ...p,
         coverImage: getPostCoverImage(p),
       }));
-    }
+    };
+
+    published.posts = mergePostsWithDefaults(published.posts);
     if (!published.currentPageId) published.currentPageId = "page_home";
     if (!published.sections) published.sections = defaultLandingSections;
     if (!published.theme) published.theme = defaultSiteConfig.theme;
@@ -1512,14 +1539,7 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
       coverImage: getPageCoverImage(p),
     }));
 
-    if (!draft.posts || draft.posts.length < allSitePosts.length) {
-      draft.posts = allSitePosts;
-    } else {
-      draft.posts = draft.posts.map((p: PostConfig) => ({
-        ...p,
-        coverImage: getPostCoverImage(p),
-      }));
-    }
+    draft.posts = mergePostsWithDefaults(draft.posts);
 
     if (!draft.currentPageId) draft.currentPageId = "page_home";
     if (!draft.sections) draft.sections = defaultLandingSections;

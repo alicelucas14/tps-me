@@ -63,10 +63,13 @@ const PRESET_BACKLINKS = [
 ];
 
 export function PostsManager() {
-  const { draftConfig, createPost, updatePost, deletePost } = useSiteStore();
+  const { draftConfig, createPost, updatePost, deletePost, publishToServer } = useSiteStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showWpImportModal, setShowWpImportModal] = useState(false);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
 
   // Post form state
   const [title, setTitle] = useState("");
@@ -188,14 +191,36 @@ export function PostsManager() {
     setShowAddModal(true);
   };
 
-  const handleSave = () => {
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    setStatusFeedback(null);
+    try {
+      const res = await publishToServer();
+      if (res.success) {
+        setStatusFeedback("All posts successfully synced & published live!");
+      } else {
+        setStatusFeedback(res.error ? `Sync warning: ${res.error}` : "Saved locally.");
+      }
+    } catch {
+      setStatusFeedback("Saved locally (offline).");
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setStatusFeedback(null), 5000);
+    }
+  };
+
+  const handleSave = async () => {
     if (!title.trim()) return;
-    const finalSlug =
+    setIsSaving(true);
+    const finalSlug = (
       slug.trim() ||
       title
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
+        .replace(/^-+|-+$/g, "")
+    )
+      .replace(/^blogs?\//, "")
+      .replace(/^\/+|\/+$/g, "");
 
     if (editingPostId) {
       updatePost(editingPostId, {
@@ -230,7 +255,17 @@ export function PostsManager() {
       });
     }
 
-    setShowAddModal(false);
+    try {
+      await publishToServer();
+      setStatusFeedback(`Post published live to /blog/${finalSlug}`);
+    } catch (e) {
+      console.warn("Auto-publish warning:", e);
+      setStatusFeedback(`Saved locally: /blog/${finalSlug}`);
+    } finally {
+      setIsSaving(false);
+      setShowAddModal(false);
+      setTimeout(() => setStatusFeedback(null), 5000);
+    }
   };
 
   // Helper to insert snippet at cursor in textarea
@@ -282,9 +317,29 @@ export function PostsManager() {
 
   return (
     <div className="space-y-6">
+      {statusFeedback && (
+        <div className="flex items-center justify-between rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 text-xs text-emerald-300">
+          <div className="flex items-center gap-2">
+            <Check className="h-4 w-4" />
+            <span>{statusFeedback}</span>
+          </div>
+          <button
+            onClick={() => setStatusFeedback(null)}
+            className="text-white/40 hover:text-white"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h2 className="text-xl font-bold text-white">Blog Posts & Guides</h2>
+          <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
+            <span>Blog Posts & Guides</span>
+            <span className="rounded-full bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+              {draftConfig.posts.length} articles
+            </span>
+          </h2>
           <p className="text-xs text-white/50">
             Publish strategy articles, tournament announcements, rich media, and SEO backlinks.
           </p>
@@ -292,11 +347,21 @@ export function PostsManager() {
 
         <div className="flex items-center gap-2.5">
           <button
+            onClick={handleManualSync}
+            disabled={isSyncing}
+            className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-xs font-semibold text-white/80 shadow transition-all hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-50"
+            title="Force push latest blog posts to live server disk"
+          >
+            <Sparkles className={`h-3.5 w-3.5 text-amber-400 ${isSyncing ? "animate-spin" : ""}`} />
+            <span>{isSyncing ? "Syncing..." : "Sync Live Site"}</span>
+          </button>
+
+          <button
             onClick={() => setShowWpImportModal(true)}
             className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-bold text-emerald-300 shadow transition-all hover:bg-emerald-500/20 active:scale-95"
           >
             <Upload className="h-4 w-4" />
-            <span>Import from WordPress</span>
+            <span>Import XML</span>
           </button>
 
           <button
@@ -405,11 +470,11 @@ export function PostsManager() {
 
             <div className="px-5 pb-4 pt-1 flex items-center justify-end gap-1.5 border-t border-white/5">
               <a
-                href={`/blog/${post.slug}`}
+                href={`/blog/${(post.slug || "").replace(/^blogs?\//, "").replace(/^\/+|\/+$/g, "")}`}
                 target="_blank"
                 rel="noreferrer"
-                className="p-1.5 text-xs text-white/50 hover:text-white"
-                title="View Post"
+                className="p-1.5 text-xs text-white/50 hover:text-emerald-400 transition-colors"
+                title={`View /blog/${(post.slug || "").replace(/^blogs?\//, "").replace(/^\/+|\/+$/g, "")}`}
               >
                 <Eye className="h-3.5 w-3.5" />
               </a>
@@ -421,8 +486,13 @@ export function PostsManager() {
                 <span>Edit</span>
               </button>
               <button
-                onClick={() => {
-                  if (confirm(`Delete post "${post.title}"?`)) deletePost(post.id);
+                onClick={async () => {
+                  if (confirm(`Delete post "${post.title}"?`)) {
+                    deletePost(post.id);
+                    try {
+                      await publishToServer();
+                    } catch {}
+                  }
                 }}
                 className="p-1.5 text-rose-400 hover:text-rose-300"
                 title="Delete Post"
@@ -591,6 +661,39 @@ export function PostsManager() {
                       onChange={(e) => setAuthor(e.target.value)}
                       className="mt-1 w-full rounded-lg border border-white/10 bg-black/50 px-3 py-1.5 text-xs text-white focus:border-emerald-400 focus:outline-none"
                     />
+                  </div>
+                </div>
+
+                {/* Slug & Live URL Preview */}
+                <div className="mt-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-1.5">
+                  <div className="flex items-center gap-2 flex-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 shrink-0">
+                      URL Slug:
+                    </span>
+                    <div className="flex items-center flex-1 rounded bg-black/50 border border-white/10 px-2 py-1 text-xs font-mono">
+                      <span className="text-white/40 select-none mr-0.5">/blog/</span>
+                      <input
+                        type="text"
+                        value={slug}
+                        placeholder="e.g. teen-patti-bangalore-guide"
+                        onChange={(e) => {
+                          setSlug(
+                            e.target.value
+                              .toLowerCase()
+                              .replace(/^blogs?\//, "")
+                              .replace(/^\/+|\/+$/g, "")
+                              .replace(/[^a-z0-9-]+/g, "-")
+                          );
+                        }}
+                        className="w-full bg-transparent text-emerald-300 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-white/50 flex items-center gap-1 shrink-0 font-mono">
+                    <span>Permalink:</span>
+                    <span className="text-emerald-400 font-semibold">
+                      /blog/{slug || "post-slug"}
+                    </span>
                   </div>
                 </div>
 
@@ -842,10 +945,17 @@ export function PostsManager() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleSave}
-                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-2 text-xs font-bold text-white shadow-lg transition-all hover:brightness-110 active:scale-95"
+                  disabled={isSaving}
+                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-2 text-xs font-bold text-white shadow-lg transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
                 >
-                  <Sparkles className="h-4 w-4" />
-                  <span>{editingPostId ? "Save & Update Article" : "Publish Article to Blog"}</span>
+                  <Sparkles className={`h-4 w-4 ${isSaving ? "animate-spin" : ""}`} />
+                  <span>
+                    {isSaving
+                      ? "Publishing Live..."
+                      : editingPostId
+                      ? "Save & Update Article"
+                      : "Publish Article to Blog"}
+                  </span>
                 </button>
               </div>
             </div>

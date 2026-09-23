@@ -47,6 +47,7 @@ export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
   const [currentPage, setCurrentPage] = useState<AdminPage>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { logout, user, rolePermissions: storePermissions } = useAdminAuthStore();
+  const { setCurrentPageId } = useSiteStore();
 
   const handleEditWithBuilder = (pageId: string) => {
     setCurrentPageId(pageId);

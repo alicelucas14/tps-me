@@ -17,7 +17,7 @@ import { WordPressImporterModal } from "./WordPressImporterModal";
 import { MarkdownEditor } from "../components/MarkdownEditor";
 
 export function PagesManager({ onEditWithBuilder }: { onEditWithBuilder: (pageId: string) => void }) {
-  const { draftConfig, createPage, deletePage, updatePageMeta } = useSiteStore();
+  const { draftConfig, createPage, deletePage, updatePageMeta, publishToServer } = useSiteStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showWpImportModal, setShowWpImportModal] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -64,13 +64,16 @@ export function PagesManager({ onEditWithBuilder }: { onEditWithBuilder: (pageId
     });
   }, [draftConfig.pages, searchQuery, filterType]);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!newTitle) return;
     const slug = newSlug || `/${newTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
     const pageId = createPage(newTitle, slug);
     setShowAddModal(false);
     setNewTitle("");
     setNewSlug("");
+    try {
+      await publishToServer();
+    } catch {}
     onEditWithBuilder(pageId);
   };
 
@@ -233,8 +236,13 @@ export function PagesManager({ onEditWithBuilder }: { onEditWithBuilder: (pageId
 
                       {!page.isHome && (
                         <button
-                          onClick={() => {
-                            if (confirm(`Delete "${page.title}"?`)) deletePage(page.id);
+                          onClick={async () => {
+                            if (confirm(`Delete "${page.title}"?`)) {
+                              deletePage(page.id);
+                              try {
+                                await publishToServer();
+                              } catch {}
+                            }
                           }}
                           className="p-1.5 text-rose-400 hover:text-rose-300"
                           title="Delete Page"
@@ -431,7 +439,7 @@ export function PagesManager({ onEditWithBuilder }: { onEditWithBuilder: (pageId
                   Cancel
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     updatePageMeta(editingPage.id, {
                       title: editTitle,
                       slug: editSlug,
@@ -439,6 +447,9 @@ export function PagesManager({ onEditWithBuilder }: { onEditWithBuilder: (pageId
                       content: editContent,
                     });
                     setEditingPage(null);
+                    try {
+                      await publishToServer();
+                    } catch {}
                   }}
                   className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-5 py-2 text-xs font-bold text-white shadow-lg hover:brightness-110 active:scale-95 transition-all"
                 >
