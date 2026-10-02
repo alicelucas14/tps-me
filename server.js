@@ -99,11 +99,58 @@ app.post("/api/publish", (req, res) => {
   }
 
   try {
-    const { __blobs, ...config } = req.body;
+    const { __blobs, deletedPostIds = [], deletedPageIds = [], ...config } = req.body;
 
     // Ensure data/ exists (not dist/ — build never touches data/)
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
+    // Automated rolling backup before modifying config
+    const BACKUPS_DIR = path.join(DATA_DIR, "backups");
+    if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+
+    if (fs.existsSync(CONFIG_FILE)) {
+      try {
+        const existingRaw = fs.readFileSync(CONFIG_FILE, "utf-8");
+        // Save immediate previous state
+        fs.writeFileSync(path.join(DATA_DIR, "site-config.backup.json"), existingRaw);
+        // Save timestamped rolling backup
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        fs.writeFileSync(path.join(BACKUPS_DIR, `site-config-${timestamp}.json`), existingRaw);
+
+        // Keep at most 20 recent backups
+        const backupFiles = fs.readdirSync(BACKUPS_DIR)
+          .filter((f) => f.startsWith("site-config-") && f.endsWith(".json"))
+          .sort();
+        if (backupFiles.length > 20) {
+          backupFiles.slice(0, backupFiles.length - 20).forEach((f) => {
+            try { fs.unlinkSync(path.join(BACKUPS_DIR, f)); } catch {}
+          });
+        }
+
+        // Safe merging: prevent accidental erasure of posts from older client drafts
+        const existing = JSON.parse(existingRaw);
+        if (Array.isArray(existing.posts) && Array.isArray(config.posts)) {
+          const deletedSet = new Set((deletedPostIds || []).map(String));
+          const incomingSlugs = new Set(config.posts.map((p) => (p.slug || "").replace(/^\/+|\/+$/g, "").toLowerCase()));
+          const incomingIds = new Set(config.posts.map((p) => String(p.id)));
+
+          // Retain existing posts unless they were explicitly deleted or already updated in payload
+          const retained = existing.posts.filter((ep) => {
+            const epSlug = (ep.slug || "").replace(/^\/+|\/+$/g, "").toLowerCase();
+            const epId = String(ep.id);
+            if (deletedSet.has(epId)) return false;
+            return !incomingSlugs.has(epSlug) && !incomingIds.has(epId);
+          });
+
+          if (retained.length > 0) {
+            console.log(`[Publish Safety] Retained ${retained.length} existing posts not present in payload.`);
+            config.posts = [...config.posts, ...retained];
+          }
+        }
+      } catch (err) {
+        console.warn("[Publish Safety] Error during backup or safe merge:", err);
+      }
+    }
 
     // Save main config (without raw blobs — keep file size manageable)
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 0));

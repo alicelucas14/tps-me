@@ -14,7 +14,7 @@ dist-ssr
 *.local
 
 # Live site config (saved by admin Publish — never overwrite with git)
-data/
+/data/
 
 # Editor / IDE
 .vscode/*

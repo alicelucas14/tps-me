@@ -1418,6 +1418,52 @@ function safeLocalStorageSet(key: string, value: any) {
   }
 }
 
+export const deduplicatePages = (pagesList: PageConfig[]): PageConfig[] => {
+  const map = new Map<string, PageConfig>();
+  (pagesList || []).forEach((p) => {
+    const clean = (p.slug || "").replace(/^\/+|\/+$/g, "").toLowerCase();
+    // If a page with this slug exists, prefer the one with more customized sections or newer
+    if (!map.has(clean) || p.isHome) {
+      map.set(clean, p);
+    } else {
+      const existing = map.get(clean)!;
+      if ((p.sections?.length || 0) !== (existing.sections?.length || 0)) {
+        // Keep the version that has been edited
+        map.set(clean, p);
+      }
+    }
+  });
+  return Array.from(map.values());
+};
+
+export const mergePostsWithDefaults = (savedPosts: PostConfig[] | undefined): PostConfig[] => {
+  const custom = Array.isArray(savedPosts) ? savedPosts : [];
+  if (custom.length === 0) {
+    return allSitePosts;
+  }
+  const customSlugMap = new Map<string, PostConfig>();
+  custom.forEach((p) => {
+    const clean = (p.slug || "").replace(/^\/+|\/+$/g, "").toLowerCase();
+    if (clean) customSlugMap.set(clean, p);
+  });
+
+  // Keep custom posts
+  const merged: PostConfig[] = [...custom];
+
+  // Add default posts if not superseded by a custom post
+  for (const dp of allSitePosts) {
+    const dpClean = (dp.slug || "").replace(/^\/+|\/+$/g, "").toLowerCase();
+    if (!customSlugMap.has(dpClean)) {
+      merged.push(dp);
+    }
+  }
+
+  return merged.map((p) => ({
+    ...p,
+    coverImage: getPostCoverImage(p),
+  }));
+};
+
 function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
   try {
     const publishedStr = localStorage.getItem(LOCAL_STORAGE_KEY_PUBLISHED);
@@ -1429,31 +1475,12 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
     published = rehydrateBlobs(published);
     draft = rehydrateBlobs(draft);
 
-
     // Load lightweight saved theme preference if present
     const savedThemeMode = localStorage.getItem(THEME_MODE_KEY) as "dark" | "light" | null;
     if (savedThemeMode) {
       if (published.theme) published.theme.colorMode = savedThemeMode;
       if (draft.theme) draft.theme.colorMode = savedThemeMode;
     }
-
-    const deduplicatePages = (pagesList: PageConfig[]) => {
-      const map = new Map<string, PageConfig>();
-      (pagesList || []).forEach((p) => {
-        const clean = (p.slug || "").replace(/^\/+|\/+$/g, "").toLowerCase();
-        // If a page with this slug exists, prefer the one with more customized sections or newer
-        if (!map.has(clean) || p.isHome) {
-          map.set(clean, p);
-        } else {
-          const existing = map.get(clean)!;
-          if ((p.sections?.length || 0) !== (existing.sections?.length || 0)) {
-            // Keep the version that has been edited
-            map.set(clean, p);
-          }
-        }
-      });
-      return Array.from(map.values());
-    };
 
     // ensure pages and posts arrays exist and include all imported items
     if (!published.pages) {
@@ -1471,34 +1498,6 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
       ...p,
       coverImage: getPageCoverImage(p),
     }));
-
-    const mergePostsWithDefaults = (savedPosts: PostConfig[] | undefined): PostConfig[] => {
-      const custom = Array.isArray(savedPosts) ? savedPosts : [];
-      if (custom.length === 0) {
-        return allSitePosts;
-      }
-      const customSlugMap = new Map<string, PostConfig>();
-      custom.forEach((p) => {
-        const clean = (p.slug || "").replace(/^\/+|\/+$/g, "").toLowerCase();
-        if (clean) customSlugMap.set(clean, p);
-      });
-
-      // Keep custom posts
-      const merged: PostConfig[] = [...custom];
-
-      // Add default posts if not superseded by a custom post
-      for (const dp of allSitePosts) {
-        const dpClean = (dp.slug || "").replace(/^\/+|\/+$/g, "").toLowerCase();
-        if (!customSlugMap.has(dpClean)) {
-          merged.push(dp);
-        }
-      }
-
-      return merged.map((p) => ({
-        ...p,
-        coverImage: getPostCoverImage(p),
-      }));
-    };
 
     published.posts = mergePostsWithDefaults(published.posts);
     if (!published.currentPageId) published.currentPageId = "page_home";
@@ -1574,6 +1573,8 @@ interface SiteStoreState {
   historyIndex: number;
   hasUnsavedChanges: boolean;
   isServerConfigLoaded: boolean;
+  deletedPostIds: string[];
+  deletedPageIds: string[];
 
   // Builder UI state
   selectedSectionId: string | null;
@@ -1658,6 +1659,8 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
     historyIndex: 0,
     hasUnsavedChanges: JSON.stringify(initial.published) !== JSON.stringify(initial.draft),
     isServerConfigLoaded: false,
+    deletedPostIds: [],
+    deletedPageIds: [],
 
     selectedSectionId: "sec_hero",
     activeTab: "content",
@@ -1934,7 +1937,7 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
     },
 
     deletePage: (pageId) => {
-      const { draftConfig } = get();
+      const { draftConfig, deletedPageIds = [] } = get();
       if (pageId === "page_home") return; // cannot delete home
       const newPages = draftConfig.pages.filter((p) => p.id !== pageId);
       const fallbackId = "page_home";
@@ -1945,6 +1948,7 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
         currentPageId: fallbackId,
         sections: fallbackPage?.sections || [],
       };
+      set({ deletedPageIds: [...deletedPageIds, pageId] });
       pushHistory(newDraft);
     },
 
@@ -2014,8 +2018,9 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
     },
 
     deletePost: (id) => {
-      const { draftConfig } = get();
+      const { draftConfig, deletedPostIds = [] } = get();
       const newPosts = draftConfig.posts.filter((p) => p.id !== id);
+      set({ deletedPostIds: [...deletedPostIds, id] });
       pushHistory({ ...draftConfig, posts: newPosts });
     },
 
@@ -2428,7 +2433,7 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
     },
 
     publishToServer: async () => {
-      const { draftConfig } = get();
+      const { draftConfig, deletedPostIds = [], deletedPageIds = [] } = get();
       try {
         // Read blobs from separate storage and attach them
         const blobs: Record<string, string> = JSON.parse(
@@ -2436,7 +2441,12 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
         );
         // Build the full config with blobs re-attached for server storage
         const hydratedConfig = rehydrateBlobs(draftConfig);
-        const payload = { ...hydratedConfig, __blobs: blobs };
+        const payload = {
+          ...hydratedConfig,
+          __blobs: blobs,
+          deletedPostIds,
+          deletedPageIds,
+        };
 
         const secret = getPublishSecret();
         const response = await fetch("/api/publish", {
@@ -2458,7 +2468,7 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
           try { localStorage.setItem(BRAND_FOOTER_KEY, JSON.stringify(draftConfig.footer)); } catch {}
         }
         safeLocalStorageSet(LOCAL_STORAGE_KEY_PUBLISHED, draftConfig);
-        set({ publishedConfig: draftConfig, hasUnsavedChanges: false });
+        set({ publishedConfig: draftConfig, hasUnsavedChanges: false, deletedPostIds: [], deletedPageIds: [] });
 
         return { success: true };
       } catch (err: any) {
@@ -2491,6 +2501,26 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
 
         // Rehydrate and apply as the authoritative published config
         const hydrated = rehydrateBlobs(config);
+
+        // Ensure pages are complete and deduplicated
+        if (!hydrated.pages) {
+          hydrated.pages = allSitePages;
+        } else {
+          allSitePages.forEach((ap) => {
+            const apClean = ap.slug.replace(/^\/+|\/+$/g, "").toLowerCase();
+            if (!hydrated.pages.some((p: PageConfig) => p.slug.replace(/^\/+|\/+$/g, "").toLowerCase() === apClean)) {
+              hydrated.pages.push(ap);
+            }
+          });
+        }
+        hydrated.pages = deduplicatePages(hydrated.pages).map((p: PageConfig) => ({
+          ...p,
+          coverImage: getPageCoverImage(p),
+        }));
+
+        // Ensure all posts (bundled + server) are merged safely
+        hydrated.posts = mergePostsWithDefaults(hydrated.posts);
+
         safeLocalStorageSet(LOCAL_STORAGE_KEY_PUBLISHED, hydrated);
         safeLocalStorageSet(LOCAL_STORAGE_KEY_DRAFT, hydrated);
         set({
