@@ -68,6 +68,33 @@ const PUBLISH_SECRET = process.env.PUBLISH_SECRET || "tps-publish-2025";
 
 app.use(express.json({ limit: "100mb" })); // large limit for base64 images
 
+// ── Dedicated Favicon & Logo Handlers ──────────────────────────────────────
+app.get("/favicon.ico", (req, res) => {
+  const icoFile = path.join(DIST_DIR, "favicon.ico");
+  if (fs.existsSync(icoFile)) {
+    res.setHeader("Content-Type", "image/x-icon");
+    res.setHeader("Cache-Control", "public, max-age=604800");
+    return res.sendFile(icoFile);
+  }
+  const logoFile = path.join(DIST_DIR, "logo.png");
+  if (fs.existsSync(logoFile)) {
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "public, max-age=604800");
+    return res.sendFile(logoFile);
+  }
+  res.status(204).end();
+});
+
+app.get("/logo.png", (req, res) => {
+  const logoFile = path.join(DIST_DIR, "logo.png");
+  if (fs.existsSync(logoFile)) {
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "public, max-age=604800");
+    return res.sendFile(logoFile);
+  }
+  res.status(404).end();
+});
+
 // ── Serve static dist files first ──────────────────────────────────────────
 app.use(express.static(DIST_DIR));
 
