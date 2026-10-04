@@ -12,6 +12,7 @@ import { FAQ } from "./components/FAQ";
 import { FinalCTA } from "./components/FinalCTA";
 import { RichText } from "./components/RichText";
 import { Footer } from "./components/Footer";
+import { SocialSidebar } from "./components/SocialSidebar";
 import { BlogView } from "./components/BlogView";
 import { PageView } from "./components/PageView";
 import { SitemapView } from "./components/SitemapView";
@@ -542,6 +543,7 @@ export default function App() {
 
       <div className="relative z-[2]">
         <Navbar />
+        <SocialSidebar />
 
         <main>
           {resolved.type === "faq" ? (
