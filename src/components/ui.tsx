@@ -49,6 +49,9 @@ export function FadeIn({
 /* ——— Buttons ——— */
 type BtnProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   href?: string;
+  target?: string;
+  rel?: string;
+  download?: boolean | string;
   variant?: "gold" | "ghost" | "outline";
   size?: "sm" | "md" | "lg";
   children: ReactNode;
@@ -60,6 +63,9 @@ export function Button({
   size = "md",
   className,
   href,
+  target,
+  rel,
+  download,
   ...rest
 }: BtnProps) {
   const base =
@@ -80,7 +86,7 @@ export function Button({
 
   if (href) {
     return (
-      <a href={href} className={cls}>
+      <a href={href} target={target} rel={rel} download={download} className={cls}>
         {children}
       </a>
     );

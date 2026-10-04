@@ -3,6 +3,8 @@ import { Check, X, Crown, Sparkles, Zap, Star } from "lucide-react";
 import { FadeIn, SectionHeading } from "./ui";
 import type { PricingSectionData } from "../store/siteStore";
 
+import { useSiteStore } from "../store/siteStore";
+
 const iconMap: Record<string, any> = {
   Zap,
   Sparkles,
@@ -11,6 +13,9 @@ const iconMap: Record<string, any> = {
 };
 
 export function Pricing({ dynamicData }: { dynamicData?: PricingSectionData }) {
+  const { publishedConfig } = useSiteStore();
+  const globalApk = publishedConfig?.footer?.apkUrl?.trim();
+
   const d: PricingSectionData = dynamicData || {
     eyebrow: "Membership Tiers",
     title: "Play at",
@@ -115,7 +120,7 @@ export function Pricing({ dynamicData }: { dynamicData?: PricingSectionData }) {
         <div className="grid gap-5 lg:grid-cols-4">
           {d.items.map((p, i) => (
             <FadeIn key={p.id || p.name} delay={i * 0.06}>
-              <PricingCard plan={p} />
+              <PricingCard plan={p} downloadUrl={globalApk} />
             </FadeIn>
           ))}
         </div>
@@ -133,8 +138,12 @@ export function Pricing({ dynamicData }: { dynamicData?: PricingSectionData }) {
   );
 }
 
-function PricingCard({ plan }: { plan: PricingSectionData["items"][number] }) {
+function PricingCard({ plan, downloadUrl }: { plan: PricingSectionData["items"][number]; downloadUrl?: string }) {
   const Icon = iconMap[plan.icon] || Zap;
+  const href = downloadUrl || "#download";
+  const isDirectApk = href.endsWith(".apk") || href.includes(".apk?") || (downloadUrl && href.startsWith("/"));
+  const isExternal = href.startsWith("http://") || href.startsWith("https://");
+
   return (
     <motion.div
       whileHover={{ y: -6 }}
@@ -221,7 +230,10 @@ function PricingCard({ plan }: { plan: PricingSectionData["items"][number] }) {
 
       <div className="mt-auto pt-8">
         <a
-          href="#download"
+          href={href}
+          target={isExternal ? "_blank" : undefined}
+          rel={isExternal ? "noopener noreferrer" : undefined}
+          download={isDirectApk ? true : undefined}
           className={`group flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-semibold transition-all ${
             plan.featured
               ? "bg-gradient-to-b from-[#ffd96b] via-[#f5c242] to-[#c98a1a] text-[#1a1205] btn-gold-glow hover:brightness-110"

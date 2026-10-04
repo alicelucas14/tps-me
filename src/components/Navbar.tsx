@@ -24,7 +24,7 @@ export function Navbar() {
       const savedStr = typeof window !== "undefined" ? localStorage.getItem("tps_brand_footer_v1") : null;
       if (savedStr) {
         const parsed: Partial<FooterConfig> = JSON.parse(savedStr);
-        if (parsed && (parsed.logoImageUrl || parsed.logoType)) {
+        if (parsed && (parsed.logoImageUrl || parsed.logoType || parsed.apkUrl !== undefined || parsed.iosUrl !== undefined || parsed.brandTitle)) {
           resolved = { ...defaultFooterConfig, ...(publishedConfig?.footer || {}), ...parsed };
         }
       }
@@ -33,8 +33,15 @@ export function Navbar() {
       ...resolved,
       logoType: resolved.logoType || "image",
       logoImageUrl: resolved.logoImageUrl || defaultLogoUrl,
+      apkUrl: resolved.apkUrl || "",
+      iosUrl: resolved.iosUrl || "",
     };
   }, [publishedConfig.footer]);
+
+  const rawApk = brand.apkUrl?.trim() || "";
+  const apkDownloadUrl = rawApk || "#download";
+  const isApkFile = rawApk.endsWith(".apk") || rawApk.includes(".apk?") || rawApk.startsWith("/");
+  const isExternalApk = rawApk.startsWith("http://") || rawApk.startsWith("https://");
 
   useEffect(() => {
     const handleScroll = () => {
@@ -110,7 +117,10 @@ export function Navbar() {
               Sign In
             </a>
             <a
-              href="#download"
+              href={apkDownloadUrl}
+              target={isExternalApk ? "_blank" : undefined}
+              rel={isExternalApk ? "noopener noreferrer" : undefined}
+              download={isApkFile ? true : undefined}
               className="group inline-flex h-10 items-center gap-2 rounded-full bg-gradient-to-b from-[#ffd96b] via-[#f5c242] to-[#c98a1a] px-5 text-sm font-semibold text-[#1a1205] btn-gold-glow transition-all hover:brightness-110"
             >
               <Download className="h-4 w-4" />
@@ -154,12 +164,17 @@ export function Navbar() {
                 <div className="mt-2 flex flex-col gap-2 border-t border-white/10 p-2">
                   <a
                     href="#download"
+                    onClick={() => setOpen(false)}
                     className="rounded-xl px-4 py-3 text-center text-sm font-medium text-white/80 hover:bg-white/5"
                   >
                     Sign In
                   </a>
                   <a
-                    href="#download"
+                    href={apkDownloadUrl}
+                    onClick={() => setOpen(false)}
+                    target={isExternalApk ? "_blank" : undefined}
+                    rel={isExternalApk ? "noopener noreferrer" : undefined}
+                    download={isApkFile ? true : undefined}
                     className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-[#ffd96b] via-[#f5c242] to-[#c98a1a] px-5 py-3 text-sm font-semibold text-[#1a1205]"
                   >
                     <Download className="h-4 w-4" />

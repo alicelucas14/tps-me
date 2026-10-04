@@ -1,9 +1,13 @@
 import { motion } from "framer-motion";
 import { Download, Sparkles, QrCode } from "lucide-react";
 import { FadeIn } from "./ui";
-import type { FinalCTASectionData } from "../store/siteStore";
+import { useSiteStore, type FinalCTASectionData } from "../store/siteStore";
 
 export function FinalCTA({ dynamicData }: { dynamicData?: FinalCTASectionData }) {
+  const { publishedConfig } = useSiteStore();
+  const globalApk = publishedConfig?.footer?.apkUrl?.trim();
+  const globalIos = publishedConfig?.footer?.iosUrl?.trim();
+
   const d: FinalCTASectionData = dynamicData || {
     badge: "Limited · ₹500 welcome bonus ends Sunday",
     titlePrefix: "Your seat at the table is ",
@@ -19,9 +23,14 @@ export function FinalCTA({ dynamicData }: { dynamicData?: FinalCTASectionData })
     iosLink: "#download",
   };
 
-  const androidUrl = d.androidLink || d.primaryCtaLink || "#download";
-  const iosUrl = d.iosLink || "#download";
-  const isAndroidExternal = androidUrl.startsWith("http://") || androidUrl.startsWith("https://") || androidUrl.endsWith(".apk");
+  const rawAndroid = (d as any).androidLink || (d as any).primaryCtaLink || "#download";
+  const rawIos = (d as any).iosLink || "#download";
+
+  const androidUrl = (rawAndroid === "#download" && globalApk) ? globalApk : rawAndroid;
+  const iosUrl = (rawIos === "#download" && globalIos) ? globalIos : rawIos;
+
+  const isAndroidApk = androidUrl.endsWith(".apk") || androidUrl.includes(".apk?") || (globalApk && androidUrl === globalApk && androidUrl.startsWith("/"));
+  const isAndroidExternal = androidUrl.startsWith("http://") || androidUrl.startsWith("https://");
   const isIosExternal = iosUrl.startsWith("http://") || iosUrl.startsWith("https://");
 
   return (
@@ -92,6 +101,7 @@ export function FinalCTA({ dynamicData }: { dynamicData?: FinalCTASectionData })
                     href={androidUrl}
                     target={isAndroidExternal ? "_blank" : undefined}
                     rel={isAndroidExternal ? "noopener noreferrer" : undefined}
+                    download={isAndroidApk ? true : undefined}
                     className="group inline-flex h-14 items-center gap-3 rounded-full bg-gradient-to-b from-[#ffd96b] via-[#f5c242] to-[#c98a1a] px-7 text-[15px] font-semibold text-[#1a1205] btn-gold-glow transition-all hover:brightness-110"
                   >
                     <Download className="h-5 w-5" />

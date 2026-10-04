@@ -1,6 +1,7 @@
 import { ArrowLeft, Calendar, FileText, CheckCircle2, ChevronRight, Download } from "lucide-react";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { getPageCoverImage, handleImageError } from "../utils/imageFallback";
+import { useSiteStore } from "../store/siteStore";
 
 export interface PageViewProps {
   page: {
@@ -20,6 +21,12 @@ export interface PageViewProps {
 }
 
 export function PageView({ page, onBack }: PageViewProps) {
+  const { publishedConfig } = useSiteStore();
+  const globalApk = publishedConfig?.footer?.apkUrl?.trim();
+  const downloadUrl = globalApk || "#download";
+  const isDirectApk = downloadUrl.endsWith(".apk") || downloadUrl.includes(".apk?") || (globalApk && downloadUrl.startsWith("/"));
+  const isExternal = downloadUrl.startsWith("http://") || downloadUrl.startsWith("https://");
+
   const formattedCategory = page.category || "Official Guide";
 
   // Sanitize excerpt to remove raw markdown images, broken link tails, and dangling URLs
@@ -118,7 +125,10 @@ export function PageView({ page, onBack }: PageViewProps) {
 
             <div className="flex items-center gap-2">
               <a
-                href="#download"
+                href={downloadUrl}
+                target={isExternal ? "_blank" : undefined}
+                rel={isExternal ? "noopener noreferrer" : undefined}
+                download={isDirectApk ? true : undefined}
                 className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-4 py-2 text-xs font-bold text-white shadow-lg transition-transform hover:scale-105 active:scale-95"
               >
                 <Download className="h-3.5 w-3.5" />
@@ -153,7 +163,10 @@ export function PageView({ page, onBack }: PageViewProps) {
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-4">
             <a
-              href="#download"
+              href={downloadUrl}
+              target={isExternal ? "_blank" : undefined}
+              rel={isExternal ? "noopener noreferrer" : undefined}
+              download={isDirectApk ? true : undefined}
               className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 px-6 py-3 text-sm font-bold text-black shadow-lg shadow-amber-500/20 transition-all hover:scale-105"
             >
               <Download className="h-4 w-4" />

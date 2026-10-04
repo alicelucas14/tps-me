@@ -16,6 +16,11 @@ import {
   Upload,
   X,
   Eye,
+  Smartphone,
+  Download,
+  ExternalLink,
+  CheckCircle2,
+  ArrowUpRight,
 } from "lucide-react";
 import {
   useSiteStore,
@@ -78,7 +83,7 @@ export function FooterManager() {
   const { draftConfig, updateFooter, publish } = useSiteStore();
   const footer: FooterConfig = draftConfig.footer || defaultFooterConfig;
 
-  const [activeTab, setActiveTab] = useState<"columns" | "brand" | "socials" | "compliance">("columns");
+  const [activeTab, setActiveTab] = useState<"columns" | "brand" | "app_links" | "socials" | "compliance">("columns");
   const [saved, setSaved] = useState(false);
   const [showLivePreview, setShowLivePreview] = useState(true);
 
@@ -311,6 +316,21 @@ export function FooterManager() {
         >
           <Crown className="h-4 w-4 text-[#f5c242]" />
           <span>Brand Logo & Bio</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("app_links")}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+            activeTab === "app_links"
+              ? "bg-gradient-to-r from-emerald-500/25 to-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm"
+              : "bg-white/5 text-white/60 hover:text-white hover:bg-white/10"
+          }`}
+        >
+          <Smartphone className="h-4 w-4 text-emerald-400" />
+          <span>App & APK Links</span>
+          {footer.apkUrl ? (
+            <span className="h-2 w-2 rounded-full bg-emerald-400" title="APK Link Configured" />
+          ) : null}
         </button>
 
         <button
@@ -873,6 +893,248 @@ export function FooterManager() {
                 className="w-full rounded-xl border border-white/10 bg-black/50 p-3 text-xs text-white leading-relaxed placeholder-white/30 focus:border-emerald-500 focus:outline-none"
                 placeholder="India's most refined real-money Teen Patti experience..."
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: APP DOWNLOAD & APK LINKS */}
+      {activeTab === "app_links" && (
+        <div className="max-w-3xl space-y-6">
+          {/* Main Info Card */}
+          <div className="rounded-2xl border border-white/10 bg-[#080d10] p-6 shadow-md">
+            <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-amber-400/20 via-amber-500/10 to-transparent border border-amber-400/30 text-amber-300 shadow-md">
+                <Smartphone className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>Universal App Download &amp; APK Link Hub</span>
+                  <span className="rounded-full bg-emerald-500/20 border border-emerald-500/40 px-2 py-0.5 text-[9px] font-bold uppercase text-emerald-300">
+                    Live Synced
+                  </span>
+                </h3>
+                <p className="text-xs text-white/50">
+                  Configure your Android APK URL once. All CTA buttons across the Header Navbar (&quot;Get the App&quot;), Hero Section, Final CTA, and Pricing cards are synchronized automatically.
+                </p>
+              </div>
+            </div>
+
+            {/* Android APK Link Section */}
+            <div className="mt-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                  <Download className="h-3.5 w-3.5" />
+                  Android APK Download Link / URL
+                </label>
+                {footer.apkUrl ? (
+                  <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-300">
+                    <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                    Direct APK Configured
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-amber-400/80">
+                    Defaulting to #download section
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <input
+                  type="text"
+                  value={footer.apkUrl || ""}
+                  onChange={(e) => {
+                    const val = e.target.value.trim();
+                    mutateFooter((prev) => ({ ...prev, apkUrl: val }));
+                    publish();
+                  }}
+                  className="w-full rounded-xl border border-white/10 bg-black/60 px-3.5 py-2.5 text-xs text-emerald-300 font-mono placeholder-white/30 focus:border-emerald-500 focus:outline-none shadow-inner"
+                  placeholder="e.g. https://your-domain.com/teenpattistars.apk or /teenpattistars.apk"
+                />
+              </div>
+
+              {/* Quick Preset Buttons */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="text-[11px] text-white/40">Quick Presets:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    mutateFooter((prev) => ({ ...prev, apkUrl: "/teenpattistars.apk" }));
+                    publish();
+                  }}
+                  className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/70 hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-300 transition-all"
+                >
+                  Local Public APK (/teenpattistars.apk)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    mutateFooter((prev) => ({ ...prev, apkUrl: "#download" }));
+                    publish();
+                  }}
+                  className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/70 hover:border-white/20 hover:text-white transition-all"
+                >
+                  Scroll Anchor (#download)
+                </button>
+                {footer.apkUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      mutateFooter((prev) => ({ ...prev, apkUrl: "" }));
+                      publish();
+                    }}
+                    className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-[11px] font-medium text-rose-300 hover:bg-rose-500/20 transition-all"
+                  >
+                    Clear URL
+                  </button>
+                ) : null}
+              </div>
+
+              {/* Status Note */}
+              <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-[11px] leading-relaxed text-white/60">
+                {footer.apkUrl && (footer.apkUrl.startsWith("http") || footer.apkUrl.endsWith(".apk") || footer.apkUrl.startsWith("/")) ? (
+                  <div className="flex items-start gap-2 text-emerald-300">
+                    <Check className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Direct Download Mode Active:</strong> Clicking &quot;Get the App&quot; or &quot;Download Free&quot; will directly initiate the APK download with <code className="bg-black/50 px-1 py-0.5 rounded text-white font-mono">download</code> attribute.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-2 text-amber-300/90">
+                    <Sparkles className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Anchor Scroll Mode Active:</strong> Clicking &quot;Get the App&quot; smoothly scrolls users down to the interactive Download QR section on the homepage.
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* iOS App Store Section */}
+            <div className="mt-6 pt-6 border-t border-white/10 space-y-3">
+              <label className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                <Globe className="h-3.5 w-3.5" />
+                iOS App Store URL (Apple Devices)
+              </label>
+
+              <div>
+                <input
+                  type="text"
+                  value={footer.iosUrl || ""}
+                  onChange={(e) => {
+                    const val = e.target.value.trim();
+                    mutateFooter((prev) => ({ ...prev, iosUrl: val }));
+                    publish();
+                  }}
+                  className="w-full rounded-xl border border-white/10 bg-black/60 px-3.5 py-2.5 text-xs text-amber-300 font-mono placeholder-white/30 focus:border-amber-500 focus:outline-none shadow-inner"
+                  placeholder="https://apps.apple.com/app/teen-patti-stars/id..."
+                />
+              </div>
+              <p className="text-[11px] text-white/40">
+                Used in the Final CTA section for iPhone &amp; iPad visitors.
+              </p>
+            </div>
+
+            {/* Live Test Links */}
+            {(footer.apkUrl || footer.iosUrl) && (
+              <div className="mt-6 pt-4 border-t border-white/5 flex flex-wrap items-center gap-3">
+                <span className="text-[11px] text-white/50">Test Links:</span>
+                {footer.apkUrl && (
+                  <a
+                    href={footer.apkUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 transition-all"
+                  >
+                    <span>Test Android APK Link</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+                {footer.iosUrl && (
+                  <a
+                    href={footer.iosUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-500/20 transition-all"
+                  >
+                    <span>Test iOS Link</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Synchronized Components Matrix Card */}
+          <div className="rounded-2xl border border-white/10 bg-[#080d10] p-6 shadow-md space-y-4">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>Real-Time Synchronized CTA Buttons Across Site</span>
+            </h4>
+            <p className="text-xs text-white/50">
+              The following buttons and sections are automatically updated when you save the link above:
+            </p>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                <div className="grid h-7 w-7 place-items-center rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                  <Check className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white">Header Navbar CTA</div>
+                  <div className="text-[11px] text-white/50">&quot;Get the App&quot; Button (Desktop &amp; Mobile)</div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                <div className="grid h-7 w-7 place-items-center rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                  <Check className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white">Hero Header Primary CTA</div>
+                  <div className="text-[11px] text-white/50">&quot;Download Free · Get ₹500&quot; Button</div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                <div className="grid h-7 w-7 place-items-center rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                  <Check className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white">Final CTA Section</div>
+                  <div className="text-[11px] text-white/50">&quot;Download for Android&quot; &amp; iOS Buttons</div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                <div className="grid h-7 w-7 place-items-center rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                  <Check className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white">VIP &amp; Pricing Cards</div>
+                  <div className="text-[11px] text-white/50">Classic, Silver, &amp; Royal CTA Buttons</div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                <div className="grid h-7 w-7 place-items-center rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                  <Check className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white">Strategy Guides &amp; Blog</div>
+                  <div className="text-[11px] text-white/50">Sidebar &amp; In-Article Download Banners</div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                <div className="grid h-7 w-7 place-items-center rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                  <Check className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white">Footer Product Links</div>
+                  <div className="text-[11px] text-white/50">&quot;Instant Download&quot; Navigation Link</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

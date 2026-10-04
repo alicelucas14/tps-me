@@ -329,6 +329,12 @@ function SinglePostView({
   onNavigatePost?: (slug: string) => void;
   onSelectCategory?: (category: string) => void;
 }) {
+  const { publishedConfig } = useSiteStore();
+  const globalApk = publishedConfig?.footer?.apkUrl?.trim();
+  const downloadUrl = globalApk || "#download";
+  const isDirectApk = downloadUrl.endsWith(".apk") || downloadUrl.includes(".apk?") || (globalApk && downloadUrl.startsWith("/"));
+  const isExternal = downloadUrl.startsWith("http://") || downloadUrl.startsWith("https://");
+
   const [copied, setCopied] = useState(false);
 
   // Filter 4 related posts (prefer matching category)
@@ -594,7 +600,10 @@ function SinglePostView({
                 </div>
 
                 <a
-                  href="#download"
+                  href={downloadUrl}
+                  target={isExternal ? "_blank" : undefined}
+                  rel={isExternal ? "noopener noreferrer" : undefined}
+                  download={isDirectApk ? true : undefined}
                   className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#ffd96b] via-[#f5c242] to-[#c98a1a] py-3 text-xs font-bold uppercase tracking-wider text-black shadow-lg shadow-amber-500/20 transition-all hover:brightness-110 active:scale-95"
                 >
                   <Download className="h-4 w-4" />

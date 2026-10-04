@@ -3,7 +3,12 @@ import { Download, Play, ShieldCheck, Zap, Star } from "lucide-react";
 import { Button, Eyebrow, FadeIn, PlayingCard } from "./ui";
 import type { HeroSectionData } from "../store/siteStore";
 
+import { useSiteStore } from "../store/siteStore";
+
 export function Hero({ dynamicData }: { dynamicData?: HeroSectionData }) {
+  const { publishedConfig } = useSiteStore();
+  const globalApk = publishedConfig?.footer?.apkUrl?.trim();
+
   const d: HeroSectionData = dynamicData || {
     eyebrow: "Diwali Edition · ₹25 Cr Prize Pool Live",
     titlePrefix: "India's most ",
@@ -23,6 +28,11 @@ export function Hero({ dynamicData }: { dynamicData?: HeroSectionData }) {
   };
 
   const isNoVisual = d.visualType === "none";
+
+  const rawPrimary = d.primaryCtaLink?.trim() || "#download";
+  const primaryHref = (rawPrimary === "#download" && globalApk) ? globalApk : rawPrimary;
+  const isDirectApk = primaryHref.endsWith(".apk") || primaryHref.includes(".apk?") || (globalApk && primaryHref === globalApk && primaryHref.startsWith("/"));
+  const isExternal = primaryHref.startsWith("http://") || primaryHref.startsWith("https://");
 
   return (
     <section className="relative overflow-hidden pt-32 pb-20 md:pt-40 md:pb-28">
@@ -66,7 +76,13 @@ export function Hero({ dynamicData }: { dynamicData?: HeroSectionData }) {
             {/* CTAs */}
             <FadeIn delay={0.15}>
               <div className={`mt-9 flex flex-wrap items-center gap-3 ${isNoVisual ? "justify-center" : ""}`}>
-                <Button href={d.primaryCtaLink || "#download"} size="lg">
+                <Button
+                  href={primaryHref}
+                  target={isExternal ? "_blank" : undefined}
+                  rel={isExternal ? "noopener noreferrer" : undefined}
+                  download={isDirectApk ? true : undefined}
+                  size="lg"
+                >
                   <Download className="h-4.5 w-4.5" />
                   {d.primaryCtaText}
                 </Button>

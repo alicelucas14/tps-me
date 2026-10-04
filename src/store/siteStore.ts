@@ -324,6 +324,8 @@ export interface FooterConfig {
   logoType?: "icon" | "image";
   logoImageUrl?: string;
   showBrandNameWithLogo?: boolean;
+  apkUrl?: string;
+  iosUrl?: string;
   description: string;
   socials: FooterSocialItem[];
   columns: FooterColumnItem[];
@@ -1185,6 +1187,8 @@ export const defaultFooterConfig: FooterConfig = {
   logoType: "image",
   logoImageUrl: defaultLogoUrl,
   showBrandNameWithLogo: true,
+  apkUrl: "",
+  iosUrl: "",
   description:
     "India's most refined real-money Teen Patti experience. Trusted by 50 lakh+ players across the country. Built with obsession in Bangalore.",
   socials: [
@@ -1511,7 +1515,7 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
       const savedBrandStr = localStorage.getItem(BRAND_FOOTER_KEY);
       if (savedBrandStr) {
         const parsedBrand = JSON.parse(savedBrandStr);
-        if (parsedBrand && (parsedBrand.logoImageUrl || parsedBrand.logoType)) {
+        if (parsedBrand && (parsedBrand.logoImageUrl || parsedBrand.logoType || parsedBrand.apkUrl !== undefined || parsedBrand.iosUrl !== undefined || parsedBrand.brandTitle)) {
           published.footer = { ...defaultFooterConfig, ...published.footer, ...parsedBrand };
           draft.footer = { ...defaultFooterConfig, ...draft.footer, ...parsedBrand };
         }
