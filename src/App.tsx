@@ -137,6 +137,17 @@ export default function App() {
       const href = target.getAttribute("href");
       if (!href) return;
 
+      // Allow direct downloads and external APK files to pass through untouched
+      if (
+        target.hasAttribute("download") ||
+        href.endsWith(".apk") ||
+        href.includes(".apk?") ||
+        href.startsWith("blob:") ||
+        href.startsWith("data:")
+      ) {
+        return;
+      }
+
       // In-page section anchors like #download or #faq
       if (href.startsWith("#") && !href.startsWith("#/")) {
         const targetId = href.replace(/^#/, "");

@@ -80,7 +80,7 @@ function compressLogoImage(file: File): Promise<string> {
 }
 
 export function FooterManager() {
-  const { draftConfig, updateFooter, publish } = useSiteStore();
+  const { draftConfig, updateFooter, publish, publishToServer } = useSiteStore();
   const footer: FooterConfig = draftConfig.footer || defaultFooterConfig;
 
   const [activeTab, setActiveTab] = useState<"columns" | "brand" | "app_links" | "socials" | "compliance">("columns");
@@ -92,8 +92,13 @@ export function FooterManager() {
     updateFooter(updater);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     publish();
+    try {
+      await publishToServer();
+    } catch (e) {
+      console.error("Failed to publish to server:", e);
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };

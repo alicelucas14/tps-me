@@ -1187,7 +1187,7 @@ export const defaultFooterConfig: FooterConfig = {
   logoType: "image",
   logoImageUrl: defaultLogoUrl,
   showBrandNameWithLogo: true,
-  apkUrl: "",
+  apkUrl: "https://pattistars.com/apk/ef64db2ba879472fa4991aa797c6646d.apk",
   iosUrl: "",
   description:
     "India's most refined real-money Teen Patti experience. Trusted by 50 lakh+ players across the country. Built with obsession in Bangalore.",
@@ -2524,6 +2524,21 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
 
         // Ensure all posts (bundled + server) are merged safely
         hydrated.posts = mergePostsWithDefaults(hydrated.posts);
+
+        // Ensure footer includes defaultFooterConfig fields and saved brand settings
+        let savedFooterBrand: Partial<FooterConfig> = {};
+        try {
+          const savedStr = localStorage.getItem(BRAND_FOOTER_KEY);
+          if (savedStr) savedFooterBrand = JSON.parse(savedStr);
+        } catch {}
+
+        hydrated.footer = {
+          ...defaultFooterConfig,
+          ...(hydrated.footer || {}),
+          ...savedFooterBrand,
+          apkUrl: (hydrated.footer?.apkUrl) || savedFooterBrand.apkUrl || defaultFooterConfig.apkUrl,
+          iosUrl: (hydrated.footer?.iosUrl) || savedFooterBrand.iosUrl || defaultFooterConfig.iosUrl,
+        };
 
         safeLocalStorageSet(LOCAL_STORAGE_KEY_PUBLISHED, hydrated);
         safeLocalStorageSet(LOCAL_STORAGE_KEY_DRAFT, hydrated);
