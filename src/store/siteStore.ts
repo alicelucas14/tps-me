@@ -160,6 +160,8 @@ export interface FinalCTASectionData {
   iosCta: string;
   promoCode: string;
   smsText: string;
+  androidLink?: string;
+  iosLink?: string;
 }
 
 export interface AnnouncementSectionData {

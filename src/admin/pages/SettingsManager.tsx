@@ -23,7 +23,6 @@ import {
   Users,
   UserPlus,
   BarChart3,
-  Activity,
 } from "lucide-react";
 import { useSiteStore } from "../../store/siteStore";
 import { useAdminAuthStore } from "../../store/adminAuthStore";

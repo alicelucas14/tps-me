@@ -35,7 +35,6 @@ export function BuilderHeader({ onExit }: { onExit: () => void }) {
     historyIndex,
     history,
     hasUnsavedChanges,
-    publish,
     publishToServer,
     resetToDefaults,
     toggleColorMode,

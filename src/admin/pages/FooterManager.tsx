@@ -20,7 +20,6 @@ import {
   Download,
   ExternalLink,
   CheckCircle2,
-  ArrowUpRight,
 } from "lucide-react";
 import {
   useSiteStore,

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Crown, Download, Sun, Moon } from "lucide-react";
+import { Menu, X, Crown, Download } from "lucide-react";
 import { cn } from "../utils/cn";
 import { useSiteStore, defaultFooterConfig, type FooterConfig } from "../store/siteStore";
 import defaultLogoUrl from "../assets/logo.png";
