@@ -1098,6 +1098,39 @@ function SectionInspector({
                       ))}
                     </div>
                   </div>
+
+                  <div className="border-t border-white/10 pt-3 space-y-3">
+                    <h5 className="text-xs font-semibold text-emerald-300">Support Callout Card ("Still Stuck?")</h5>
+                    <InputField
+                      label="Support Title"
+                      value={d.supportTitle}
+                      onChange={(v) => onUpdateProperty("supportTitle", v)}
+                    />
+                    <TextAreaField
+                      label="Support Subtitle"
+                      value={d.supportSubtitle}
+                      onChange={(v) => onUpdateProperty("supportSubtitle", v)}
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <InputField
+                        label="WhatsApp Button Text"
+                        value={d.whatsappCta}
+                        onChange={(v) => onUpdateProperty("whatsappCta", v)}
+                      />
+                      <InputField
+                        label="WhatsApp Link / Number"
+                        value={d.whatsappUrl}
+                        placeholder="https://wa.me/919876543210"
+                        onChange={(v) => onUpdateProperty("whatsappUrl", v)}
+                      />
+                    </div>
+                    <InputField
+                      label="Support Email"
+                      value={d.emailCta}
+                      placeholder="support@teenpattistars.in"
+                      onChange={(v) => onUpdateProperty("emailCta", v)}
+                    />
+                  </div>
                 </div>
               )}
 

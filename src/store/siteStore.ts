@@ -145,6 +145,7 @@ export interface FAQSectionData {
   supportTitle: string;
   supportSubtitle: string;
   whatsappCta: string;
+  whatsappUrl?: string;
   emailCta: string;
   items: FAQItemData[];
 }
@@ -745,6 +746,7 @@ const defaultLandingSections: SectionConfig[] = [
       supportSubtitle:
         "Our India-based support team is online 24×7 — in Hindi, English, and 8 regional languages.",
       whatsappCta: "Chat on WhatsApp",
+      whatsappUrl: "https://wa.me/919876543210",
       emailCta: "support@teenpattistars.in",
       items: [
         {
