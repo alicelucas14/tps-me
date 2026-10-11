@@ -31,6 +31,13 @@ import {
   isSocialVisible,
 } from "../../store/siteStore";
 import defaultLogoUrl from "../../assets/logo.png";
+import {
+  SOCIAL_BRANDS,
+  detectBrandFromUrl,
+  findBrandByPath,
+  isGenericSocialName,
+  isPlaceholderSocialUrl,
+} from "../../utils/socialBrands";
 
 function compressLogoImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -86,6 +93,7 @@ export function FooterManager() {
   const [activeTab, setActiveTab] = useState<"columns" | "brand" | "app_links" | "socials" | "compliance">("columns");
   const [saved, setSaved] = useState(false);
   const [showLivePreview, setShowLivePreview] = useState(true);
+  const [brandPickerIdx, setBrandPickerIdx] = useState<number | null>(null);
 
   // Helper to mutate footer in draft and store
   const mutateFooter = (updater: (prev: FooterConfig) => FooterConfig) => {
@@ -206,25 +214,58 @@ export function FooterManager() {
   const handleUpdateSocialUrl = (socialIndex: number, url: string) => {
     mutateFooter((prev) => {
       const nextSocials = [...prev.socials];
-      nextSocials[socialIndex] = { ...nextSocials[socialIndex], url };
+      const current = nextSocials[socialIndex];
+      let updated = { ...current, url };
+      // Auto-switch the brand icon (and placeholder name) when the URL clearly belongs to a brand
+      const detected = detectBrandFromUrl(url);
+      if (detected && findBrandByPath(current.path)?.id !== detected.id) {
+        updated = {
+          ...updated,
+          path: detected.path,
+          name: isGenericSocialName(current.name) ? detected.name : current.name,
+        };
+      }
+      nextSocials[socialIndex] = updated;
       return { ...prev, socials: nextSocials };
     });
   };
 
+  const handleSelectBrand = (socialIndex: number, brandId: string) => {
+    const brand = SOCIAL_BRANDS.find((b) => b.id === brandId);
+    if (!brand) return;
+    mutateFooter((prev) => {
+      const nextSocials = [...prev.socials];
+      const current = nextSocials[socialIndex];
+      nextSocials[socialIndex] = {
+        ...current,
+        path: brand.path,
+        name: isGenericSocialName(current.name) ? brand.name : current.name,
+        url: isPlaceholderSocialUrl(current.url) ? brand.baseUrl : current.url,
+      };
+      return { ...prev, socials: nextSocials };
+    });
+    setBrandPickerIdx(null);
+  };
+
   const handleAddSocial = () => {
+    const website = SOCIAL_BRANDS.find((b) => b.id === "website")!;
     const newSocial: FooterSocialItem = {
       id: `soc_${Date.now()}`,
-      name: "Community",
-      url: "https://t.me",
-      path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z",
+      name: "New Profile",
+      url: "",
+      path: website.path,
     };
+    const newIndex = footer.socials?.length || 0;
     mutateFooter((prev) => ({
       ...prev,
       socials: [...(prev.socials || []), newSocial],
     }));
+    // Open the brand picker straight away for the new profile
+    setBrandPickerIdx(newIndex);
   };
 
   const handleDeleteSocial = (socialIndex: number) => {
+    setBrandPickerIdx(null);
     mutateFooter((prev) => {
       const nextSocials = prev.socials.filter((_, idx) => idx !== socialIndex);
       return { ...prev, socials: nextSocials };
@@ -1187,6 +1228,10 @@ export function FooterManager() {
               const isActive = social.active !== false;
               const inFooter = social.showInFooter !== false;
               const inSidebar = social.showInSidebar !== false;
+              const currentBrand = findBrandByPath(social.path);
+              const urlBrand = detectBrandFromUrl(social.url);
+              const brandMismatch = !!urlBrand && currentBrand?.id !== urlBrand.id;
+              const pickerOpen = brandPickerIdx === idx;
               return (
               <div
                 key={social.id || idx}
@@ -1195,11 +1240,26 @@ export function FooterManager() {
                 }`}
               >
                <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/5 text-white/80">
+                <button
+                  type="button"
+                  id={`social-brand-${social.id || idx}`}
+                  onClick={() => setBrandPickerIdx(pickerOpen ? null : idx)}
+                  title="Choose social media brand"
+                  aria-expanded={pickerOpen}
+                  className={`group relative grid h-10 w-10 shrink-0 place-items-center rounded-xl border transition-all ${
+                    pickerOpen
+                      ? "border-emerald-400/60 bg-emerald-500/15 text-white"
+                      : "border-white/10 bg-white/5 text-white/80 hover:border-emerald-400/40 hover:bg-emerald-500/10 hover:text-white"
+                  }`}
+                  style={currentBrand && currentBrand.id !== "website" ? { color: currentBrand.color === "#ffffff" ? undefined : currentBrand.color } : undefined}
+                >
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
                     <path d={social.path} />
                   </svg>
-                </div>
+                  <span className="absolute -bottom-1 -right-1 grid h-4 w-4 place-items-center rounded-full border border-white/20 bg-[#0b1116] text-white/70 group-hover:text-emerald-300">
+                    <ChevronDown className={`h-2.5 w-2.5 transition-transform ${pickerOpen ? "rotate-180" : ""}`} />
+                  </span>
+                </button>
 
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center justify-between">
@@ -1232,8 +1292,53 @@ export function FooterManager() {
                     className="w-full rounded-lg border border-white/10 bg-black/60 px-2.5 py-1 text-xs text-emerald-300 font-mono placeholder-white/30 focus:border-emerald-500 focus:outline-none"
                     placeholder="https://..."
                   />
+                  {brandMismatch && urlBrand && (
+                    <button
+                      type="button"
+                      onClick={() => handleSelectBrand(idx, urlBrand.id)}
+                      className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-[11px] font-semibold text-amber-200 hover:bg-amber-400/20 transition-all"
+                    >
+                      <Sparkles className="h-3 w-3" />
+                      This looks like a {urlBrand.name} link — use the {urlBrand.name} icon
+                    </button>
+                  )}
                 </div>
                </div>
+
+               {/* Brand picker */}
+               {pickerOpen && (
+                 <div className="mt-3 rounded-xl border border-emerald-500/20 bg-[#060b0e] p-3">
+                   <div className="mb-2 text-[11px] font-semibold text-white/60">Choose a brand</div>
+                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                     {SOCIAL_BRANDS.map((brand) => {
+                       const selected = currentBrand?.id === brand.id;
+                       return (
+                         <button
+                           key={brand.id}
+                           type="button"
+                           id={`social-brand-${social.id || idx}-${brand.id}`}
+                           onClick={() => handleSelectBrand(idx, brand.id)}
+                           className={`flex flex-col items-center gap-1.5 rounded-lg border px-2 py-2 text-[10px] font-semibold transition-all ${
+                             selected
+                               ? "border-emerald-400/60 bg-emerald-500/15 text-white"
+                               : "border-white/10 bg-white/[0.03] text-white/60 hover:border-white/25 hover:bg-white/[0.07] hover:text-white"
+                           }`}
+                         >
+                           <span
+                             className="grid h-7 w-7 place-items-center rounded-lg"
+                             style={{ backgroundColor: `${brand.color}22`, color: brand.color }}
+                           >
+                             <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor">
+                               <path d={brand.path} />
+                             </svg>
+                           </span>
+                           <span className="truncate max-w-full">{brand.name.replace(" (Twitter)", "")}</span>
+                         </button>
+                       );
+                     })}
+                   </div>
+                 </div>
+               )}
 
                {/* Visibility toggles */}
                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-white/5 pt-3 pl-[52px]">
