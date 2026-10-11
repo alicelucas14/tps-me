@@ -1309,7 +1309,7 @@ export function FooterManager() {
                {pickerOpen && (
                  <div className="mt-3 rounded-xl border border-emerald-500/20 bg-[#060b0e] p-3">
                    <div className="mb-2 text-[11px] font-semibold text-white/60">Choose a brand</div>
-                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                      {SOCIAL_BRANDS.map((brand) => {
                        const selected = currentBrand?.id === brand.id;
                        return (

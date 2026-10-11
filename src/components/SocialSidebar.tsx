@@ -92,6 +92,30 @@ const SOCIAL_PLATFORMS: SocialPlatform[] = [
 ];
 
 // Discord styling (not in the default list, but commonly added in Footer Manager)
+SOCIAL_PLATFORMS.push(
+  {
+    id: "pinterest",
+    name: "Pinterest",
+    shortName: "PIN",
+    actionText: "Follow Boards",
+    defaultUrl: "https://www.pinterest.com",
+    brandColor: "#E60023",
+    hoverBg: "hover:bg-[#E60023]",
+    glowColor: "rgba(230, 0, 35, 0.45)",
+    svgPath: "",
+  },
+  {
+    id: "quora",
+    name: "Quora",
+    shortName: "Q",
+    actionText: "Follow on Quora",
+    defaultUrl: "https://www.quora.com",
+    brandColor: "#B92B27",
+    hoverBg: "hover:bg-[#B92B27]",
+    glowColor: "rgba(185, 43, 39, 0.45)",
+    svgPath: "",
+  }
+);
 SOCIAL_PLATFORMS.push({
   id: "discord",
   name: "Discord",
@@ -114,6 +138,8 @@ const PLATFORM_MATCHERS: Record<string, { names: string[]; domains: string[] }> 
   telegram: { names: ["telegram"], domains: ["t.me", "telegram.me", "telegram.org"] },
   whatsapp: { names: ["whatsapp"], domains: ["wa.me", "whatsapp.com"] },
   discord: { names: ["discord"], domains: ["discord.com", "discord.gg"] },
+  pinterest: { names: ["pinterest"], domains: ["pinterest.com", "pinterest.co.uk", "pin.it"] },
+  quora: { names: ["quora"], domains: ["quora.com"] },
 };
 
 const GENERIC_STYLE = {
