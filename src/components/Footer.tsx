@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Crown } from "lucide-react";
-import { useSiteStore, defaultFooterConfig, type FooterConfig } from "../store/siteStore";
+import { useSiteStore, defaultFooterConfig, isSocialVisible, type FooterConfig } from "../store/siteStore";
 import defaultLogoUrl from "../assets/logo.png";
 
 export function Footer() {
@@ -63,9 +63,9 @@ export function Footer() {
             </p>
 
             {/* Social */}
-            {footer.socials && footer.socials.length > 0 && (
+            {footer.socials && footer.socials.some((s) => isSocialVisible(s, "footer")) && (
               <div className="mt-6 flex items-center gap-2">
-                {footer.socials.map((s) => (
+                {footer.socials.filter((s) => isSocialVisible(s, "footer")).map((s) => (
                   <a
                     key={s.id || s.name}
                     href={s.url || "#"}

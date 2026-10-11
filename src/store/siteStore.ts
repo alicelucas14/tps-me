@@ -318,6 +318,22 @@ export interface FooterSocialItem {
   name: string;
   url: string;
   path: string;
+  /** Master switch — when false the link is hidden everywhere. Defaults to true. */
+  active?: boolean;
+  /** Show in the website footer. Defaults to true. */
+  showInFooter?: boolean;
+  /** Show in the floating social sidebar. Defaults to true. */
+  showInSidebar?: boolean;
+}
+
+/** Returns true if a social link should be displayed in the given location. */
+export function isSocialVisible(
+  social: FooterSocialItem,
+  place: "footer" | "sidebar"
+): boolean {
+  if (!social || social.active === false) return false;
+  if (!(social.url || "").trim()) return false;
+  return place === "footer" ? social.showInFooter !== false : social.showInSidebar !== false;
 }
 
 export interface FooterConfig {

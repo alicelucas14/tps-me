@@ -28,6 +28,7 @@ import {
   FooterColumnItem,
   FooterLinkItem,
   FooterSocialItem,
+  isSocialVisible,
 } from "../../store/siteStore";
 import defaultLogoUrl from "../../assets/logo.png";
 
@@ -226,6 +227,19 @@ export function FooterManager() {
   const handleDeleteSocial = (socialIndex: number) => {
     mutateFooter((prev) => {
       const nextSocials = prev.socials.filter((_, idx) => idx !== socialIndex);
+      return { ...prev, socials: nextSocials };
+    });
+  };
+
+  // Toggle Active / Footer / Sidebar visibility (undefined is treated as "on")
+  const handleToggleSocialFlag = (
+    socialIndex: number,
+    flag: "active" | "showInFooter" | "showInSidebar"
+  ) => {
+    mutateFooter((prev) => {
+      const nextSocials = [...prev.socials];
+      const current = nextSocials[socialIndex];
+      nextSocials[socialIndex] = { ...current, [flag]: current[flag] === false };
       return { ...prev, socials: nextSocials };
     });
   };
@@ -1163,12 +1177,24 @@ export function FooterManager() {
             </button>
           </div>
 
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2 text-[11px] text-white/50">
+            <span><b className="text-emerald-300">Active</b> turns a link on/off everywhere.</span>
+            <span><b className="text-white/80">Footer</b> / <b className="text-white/80">Sidebar</b> choose where it appears.</span>
+          </div>
+
           <div className="space-y-3">
-            {footer.socials?.map((social, idx) => (
+            {footer.socials?.map((social, idx) => {
+              const isActive = social.active !== false;
+              const inFooter = social.showInFooter !== false;
+              const inSidebar = social.showInSidebar !== false;
+              return (
               <div
                 key={social.id || idx}
-                className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/40 p-3"
+                className={`rounded-xl border p-3 transition-all ${
+                  isActive ? "border-white/10 bg-black/40" : "border-white/5 bg-black/20 opacity-60"
+                }`}
               >
+               <div className="flex items-center gap-3">
                 <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/5 text-white/80">
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
                     <path d={social.path} />
@@ -1207,8 +1233,68 @@ export function FooterManager() {
                     placeholder="https://..."
                   />
                 </div>
+               </div>
+
+               {/* Visibility toggles */}
+               <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-white/5 pt-3 pl-[52px]">
+                 {/* Active switch */}
+                 <button
+                   type="button"
+                   id={`social-active-${social.id || idx}`}
+                   onClick={() => handleToggleSocialFlag(idx, "active")}
+                   aria-pressed={isActive}
+                   className={`flex items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-bold transition-all ${
+                     isActive
+                       ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300"
+                       : "border-white/10 bg-white/5 text-white/50"
+                   }`}
+                 >
+                   <span
+                     className={`relative inline-flex h-3.5 w-6 items-center rounded-full transition-colors ${
+                       isActive ? "bg-emerald-500" : "bg-white/20"
+                     }`}
+                   >
+                     <span
+                       className={`absolute h-2.5 w-2.5 rounded-full bg-white shadow transition-all ${
+                         isActive ? "left-[12px]" : "left-[2px]"
+                       }`}
+                     />
+                   </span>
+                   {isActive ? "Active" : "Inactive"}
+                 </button>
+
+                 {([
+                   { flag: "showInFooter" as const, label: "Footer", on: inFooter },
+                   { flag: "showInSidebar" as const, label: "Sidebar", on: inSidebar },
+                 ]).map(({ flag, label, on }) => (
+                   <button
+                     key={flag}
+                     type="button"
+                     id={`social-${flag}-${social.id || idx}`}
+                     onClick={() => handleToggleSocialFlag(idx, flag)}
+                     disabled={!isActive}
+                     aria-pressed={on}
+                     title={!isActive ? "Activate this link first" : `Show in ${label.toLowerCase()}`}
+                     className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-all disabled:cursor-not-allowed ${
+                       on && isActive
+                         ? "border-amber-400/40 bg-amber-400/10 text-amber-200"
+                         : "border-white/10 bg-white/[0.03] text-white/45 hover:text-white/70"
+                     }`}
+                   >
+                     <span
+                       className={`grid h-3.5 w-3.5 place-items-center rounded border ${
+                         on && isActive ? "border-amber-400 bg-amber-400 text-black" : "border-white/30"
+                       }`}
+                     >
+                       {on && isActive && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
+                     </span>
+                     {label}
+                   </button>
+                 ))}
+               </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -1368,7 +1454,7 @@ export function FooterManager() {
                 </p>
 
                 <div className="mt-4 flex items-center gap-2">
-                  {footer.socials?.map((s) => (
+                  {footer.socials?.filter((s) => isSocialVisible(s, "footer")).map((s) => (
                     <div
                       key={s.id || s.name}
                       className="grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-white/5 text-white/60"
