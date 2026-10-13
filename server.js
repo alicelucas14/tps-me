@@ -95,6 +95,39 @@ app.get("/logo.png", (req, res) => {
   res.status(404).end();
 });
 
+// ── Dedicated SEO & Crawler Handlers ──────────────────────────────────────
+const PUBLIC_DIR = path.join(__dirname, "public");
+
+app.get("/sitemap.xml", (req, res) => {
+  const distFile = path.join(DIST_DIR, "sitemap.xml");
+  const pubFile = path.join(PUBLIC_DIR, "sitemap.xml");
+  res.setHeader("Content-Type", "application/xml; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  if (fs.existsSync(distFile)) return res.sendFile(distFile);
+  if (fs.existsSync(pubFile)) return res.sendFile(pubFile);
+  res.status(404).send("<?xml version=\"1.0\" encoding=\"UTF-8\"?><error>Sitemap not found</error>");
+});
+
+app.get("/robots.txt", (req, res) => {
+  const distFile = path.join(DIST_DIR, "robots.txt");
+  const pubFile = path.join(PUBLIC_DIR, "robots.txt");
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  if (fs.existsSync(distFile)) return res.sendFile(distFile);
+  if (fs.existsSync(pubFile)) return res.sendFile(pubFile);
+  res.send("User-agent: *\nAllow: /\n\nSitemap: https://teenpattistars.me/sitemap.xml\n");
+});
+
+app.get("/llms.txt", (req, res) => {
+  const distFile = path.join(DIST_DIR, "llms.txt");
+  const pubFile = path.join(PUBLIC_DIR, "llms.txt");
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  if (fs.existsSync(distFile)) return res.sendFile(distFile);
+  if (fs.existsSync(pubFile)) return res.sendFile(pubFile);
+  res.status(404).send("# Teen Patti Stars — AI Guide\n");
+});
+
 // ── Serve static dist files first ──────────────────────────────────────────
 app.use(express.static(DIST_DIR));
 

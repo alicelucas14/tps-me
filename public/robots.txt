@@ -32,4 +32,4 @@ User-agent: Amazonbot
 Allow: /
 
 # Sitemaps & AI Standard Docs
-Sitemap: https://teenpattistars.com/sitemap.xml
+Sitemap: https://teenpattistars.me/sitemap.xml

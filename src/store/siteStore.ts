@@ -765,7 +765,7 @@ const defaultLandingSections: SectionConfig[] = [
         "Our India-based support team is online 24×7 — in Hindi, English, and 8 regional languages.",
       whatsappCta: "Chat on WhatsApp",
       whatsappUrl: "https://wa.me/919876543210",
-      emailCta: "support@teenpattistars.in",
+      emailCta: "support@teenpattistars.me",
       items: [
         {
           id: "q1",
@@ -887,7 +887,7 @@ export const defaultPages: PageConfig[] = [
           supportTitle: "Need help with hand rankings?",
           supportSubtitle: "Our live table coaches are available 24/7 on WhatsApp.",
           whatsappCta: "Ask a Coach",
-          emailCta: "rules@teenpattistars.in",
+          emailCta: "rules@teenpattistars.me",
           items: [
             {
               id: "r1",
@@ -1522,11 +1522,19 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
     if (!published.pages) {
       published.pages = allSitePages;
     } else {
-      // Merge missing allSitePages into published.pages without creating duplicates
+      // Merge missing allSitePages into published.pages without creating duplicates and heal any stale lorem ipsum pages
       allSitePages.forEach((ap) => {
         const apClean = ap.slug.replace(/^\/+|\/+$/g, "").toLowerCase();
-        if (!published.pages.some((p: PageConfig) => p.slug.replace(/^\/+|\/+$/g, "").toLowerCase() === apClean)) {
+        const existingIdx = published.pages.findIndex(
+          (p: PageConfig) => p.slug.replace(/^\/+|\/+$/g, "").toLowerCase() === apClean
+        );
+        if (existingIdx === -1) {
           published.pages.push(ap);
+        } else if (
+          published.pages[existingIdx].content?.toLowerCase().includes("lorem ipsum") ||
+          published.pages[existingIdx].excerpt?.toLowerCase().includes("lorem ipsum")
+        ) {
+          published.pages[existingIdx] = ap;
         }
       });
     }
@@ -1578,8 +1586,16 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
     } else {
       allSitePages.forEach((ap) => {
         const apClean = ap.slug.replace(/^\/+|\/+$/g, "").toLowerCase();
-        if (!draft.pages.some((p: PageConfig) => p.slug.replace(/^\/+|\/+$/g, "").toLowerCase() === apClean)) {
+        const existingIdx = draft.pages.findIndex(
+          (p: PageConfig) => p.slug.replace(/^\/+|\/+$/g, "").toLowerCase() === apClean
+        );
+        if (existingIdx === -1) {
           draft.pages.push(ap);
+        } else if (
+          draft.pages[existingIdx].content?.toLowerCase().includes("lorem ipsum") ||
+          draft.pages[existingIdx].excerpt?.toLowerCase().includes("lorem ipsum")
+        ) {
+          draft.pages[existingIdx] = ap;
         }
       });
     }
@@ -1771,7 +1787,7 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
               supportTitle: "Need help?",
               supportSubtitle: "Our support team is active 24/7 on WhatsApp.",
               whatsappCta: "Chat Support",
-              emailCta: "support@teenpattistars.in",
+              emailCta: "support@teenpattistars.me",
               items: [
                 {
                   id: "q_new_1",
@@ -2544,8 +2560,16 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
         } else {
           allSitePages.forEach((ap) => {
             const apClean = ap.slug.replace(/^\/+|\/+$/g, "").toLowerCase();
-            if (!hydrated.pages.some((p: PageConfig) => p.slug.replace(/^\/+|\/+$/g, "").toLowerCase() === apClean)) {
+            const existingIdx = hydrated.pages.findIndex(
+              (p: PageConfig) => p.slug.replace(/^\/+|\/+$/g, "").toLowerCase() === apClean
+            );
+            if (existingIdx === -1) {
               hydrated.pages.push(ap);
+            } else if (
+              hydrated.pages[existingIdx].content?.toLowerCase().includes("lorem ipsum") ||
+              hydrated.pages[existingIdx].excerpt?.toLowerCase().includes("lorem ipsum")
+            ) {
+              hydrated.pages[existingIdx] = ap;
             }
           });
         }

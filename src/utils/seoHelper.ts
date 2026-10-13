@@ -1,6 +1,6 @@
 import type { SiteConfig } from "../store/siteStore";
 
-export const DEFAULT_BASE_URL = "https://teenpattistars.com";
+export const DEFAULT_BASE_URL = "https://teenpattistars.me";
 
 /**
  * Dynamically updates document title, description, canonical link, OpenGraph tags, and JSON-LD structured data.
@@ -80,42 +80,79 @@ function updateMetaTag(attributeName: "name" | "property", attributeValue: strin
   el.content = content;
 }
 
+export interface SitemapEntry {
+  loc: string;
+  lastmod: string;
+  changefreq: string;
+  priority: string;
+}
+
 /**
  * Generates dynamic, RFC-compliant XML Sitemap containing all custom pages and blog posts.
  */
 export function generateDynamicSitemapXml(config: SiteConfig, baseUrl: string = DEFAULT_BASE_URL): string {
   const currentDate = new Date().toISOString().split("T")[0];
+  const urlMap = new Map<string, SitemapEntry>();
 
-  const staticEntries = [
-    { loc: `${baseUrl}/`, priority: "1.0", changefreq: "daily", lastmod: currentDate },
-    { loc: `${baseUrl}/how-to-play`, priority: "0.9", changefreq: "weekly", lastmod: currentDate },
-    { loc: `${baseUrl}/vip-club`, priority: "0.9", changefreq: "weekly", lastmod: currentDate },
-    { loc: `${baseUrl}/blog`, priority: "0.8", changefreq: "daily", lastmod: currentDate },
-    { loc: `${baseUrl}/sitemap`, priority: "0.7", changefreq: "monthly", lastmod: currentDate },
-  ];
+  const addUrl = (path: string, priority: string, changefreq: string, lastmod?: string) => {
+    const cleanPath = path.replace(/^\/+|\/+$/g, "");
+    const fullUrl = cleanPath ? `${baseUrl}/${cleanPath}` : `${baseUrl}/`;
+    if (!urlMap.has(fullUrl)) {
+      urlMap.set(fullUrl, {
+        loc: fullUrl,
+        priority,
+        changefreq,
+        lastmod: lastmod || currentDate,
+      });
+    }
+  };
 
-  // Map custom pages
-  const pageEntries = (config.pages || [])
-    .filter((p) => p.slug !== "/" && p.slug !== "/how-to-play" && p.slug !== "/vip-club")
-    .map((p) => {
-      const clean = (p.slug || "").replace(/^\/+|\/+$/g, "");
-      return {
-        loc: `${baseUrl}/${clean}`,
-        priority: "0.8",
-        changefreq: "weekly",
-        lastmod: p.createdAt || currentDate,
-      };
-    });
+  // 1. Core static hub entries
+  addUrl("", "1.0", "daily", currentDate);
+  addUrl("how-to-play", "0.9", "weekly", currentDate);
+  addUrl("vip-club", "0.9", "weekly", currentDate);
+  addUrl("blog", "0.9", "daily", currentDate);
+  addUrl("faq", "0.8", "weekly", currentDate);
+  addUrl("sitemap", "0.7", "weekly", currentDate);
 
-  // Map blog posts
-  const postEntries = (config.posts || []).map((post) => ({
-    loc: `${baseUrl}/blog/${post.slug}`,
-    priority: "0.8",
-    changefreq: "monthly",
-    lastmod: currentDate,
-  }));
+  // High priority landing hubs
+  const highPrioritySlugs = new Set([
+    "our-games",
+    "players-guide",
+    "teen-patti-games",
+    "loyalty-programs",
+    "welcome-bonuses",
+    "leaderboards-and-tournaments",
+  ]);
 
-  const allUrls = [...staticEntries, ...pageEntries, ...postEntries];
+  const lowPrioritySlugs = new Set([
+    "privacy-policy",
+    "about-us",
+    "contact-us",
+    "sitemap",
+  ]);
+
+  // 2. Map custom pages
+  (config.pages || []).forEach((p) => {
+    const clean = (p.slug || "").replace(/^\/+|\/+$/g, "");
+    if (!clean || clean === "home") return;
+    if (clean === "blogs") {
+      addUrl("blog", "0.9", "daily", p.createdAt || currentDate);
+      return;
+    }
+    const priority = highPrioritySlugs.has(clean) ? "0.9" : lowPrioritySlugs.has(clean) ? "0.6" : "0.8";
+    const changefreq = highPrioritySlugs.has(clean) ? "weekly" : "monthly";
+    addUrl(clean, priority, changefreq, p.createdAt || currentDate);
+  });
+
+  // 3. Map blog posts
+  (config.posts || []).forEach((post) => {
+    const clean = (post.slug || "").replace(/^\/+|\/+$/g, "").replace(/^blogs?\//, "");
+    if (!clean) return;
+    addUrl(`blog/${clean}`, "0.8", "monthly", post.date || currentDate);
+  });
+
+  const allUrls = Array.from(urlMap.values());
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
