@@ -131,17 +131,112 @@ app.get("/llms.txt", (req, res) => {
 // ── Serve static dist files first ──────────────────────────────────────────
 app.use(express.static(DIST_DIR));
 
+// ── Auto-heal & sanitize site config on server ──────────────────────────────
+function sanitizeConfig(config) {
+  if (!config || !Array.isArray(config.pages)) return { config, modified: false };
+  let modified = false;
+
+  let wpPages = [];
+  try {
+    const wpPagesFile = path.join(__dirname, "src", "data", "wpPages.json");
+    if (fs.existsSync(wpPagesFile)) {
+      wpPages = JSON.parse(fs.readFileSync(wpPagesFile, "utf-8"));
+    }
+  } catch (err) {
+    console.warn("Could not read wpPages.json for server sanitizer:", err.message);
+  }
+
+  config.pages = config.pages.map((p) => {
+    const serialized = JSON.stringify(p);
+    const lower = serialized.toLowerCase();
+    const cleanSlug = (p.slug || "").replace(/^\/+|\/+$/g, "").toLowerCase();
+
+    const isPlaceholder =
+      cleanSlug === "players-guide" ||
+      lower.includes("lorem ipsum") ||
+      lower.includes("dolor sit amet") ||
+      lower.includes("placeholder-wire") ||
+      serialized.includes("photo-1518609878373-06d740f60d8b");
+
+    if (!isPlaceholder) return p;
+
+    const wpMatch = wpPages.find(
+      (wp) => (wp.slug || "").replace(/^\/+|\/+$/g, "").toLowerCase() === cleanSlug
+    );
+
+    if (wpMatch) {
+      modified = true;
+      return {
+        ...p,
+        id: p.id || wpMatch.id,
+        slug: wpMatch.slug.startsWith("/") ? wpMatch.slug : `/${wpMatch.slug}`,
+        title: wpMatch.title,
+        excerpt: wpMatch.excerpt,
+        content: wpMatch.content,
+        status: "published",
+        coverImage: wpMatch.coverImage || "https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=1200&q=80",
+        createdAt: wpMatch.date || "2026-01-01",
+        seo: {
+          title: `${wpMatch.title} | Teen Patti Stars`,
+          description: wpMatch.excerpt || `Official details and guide for ${wpMatch.title}`,
+        },
+        sections: [
+          {
+            id: `sec_text_${wpMatch.id || "clean"}`,
+            type: "rich_text",
+            label: "Page Document & Content",
+            visible: true,
+            data: {
+              eyebrow: "Official Document",
+              title: wpMatch.title,
+              titleAccent: "Overview",
+              subtitle: wpMatch.excerpt || `Official details regarding ${wpMatch.title}.`,
+              content: wpMatch.content || `Content for ${wpMatch.title}`,
+            },
+          },
+        ],
+      };
+    }
+    return p;
+  });
+
+  return { config, modified };
+}
+
+// Auto-heal CONFIG_FILE on disk at server launch
+try {
+  if (fs.existsSync(CONFIG_FILE)) {
+    const raw = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
+    const { config: healed, modified } = sanitizeConfig(raw);
+    if (modified) {
+      fs.writeFileSync(CONFIG_FILE, JSON.stringify(healed, null, 2), "utf-8");
+      console.log("[server] Auto-healed site-config.json on startup (removed placeholder pages).");
+    }
+  }
+} catch (bootErr) {
+  console.warn("[server] Startup config sanitizer warning:", bootErr.message);
+}
+
 // ── GET /api/config ─────────────────────────────────────────────────────────
 // Returns the server-side published config (or null if none saved yet)
 app.get("/api/config", (req, res) => {
   try {
     if (fs.existsSync(CONFIG_FILE)) {
       const config = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
+      const { config: cleanConfig, modified } = sanitizeConfig(config);
+      if (modified) {
+        try {
+          fs.writeFileSync(CONFIG_FILE, JSON.stringify(cleanConfig, null, 2), "utf-8");
+          console.log("[server] Auto-healed and updated site-config.json to remove placeholder pages.");
+        } catch (writeErr) {
+          console.warn("[server] Could not rewrite sanitized config:", writeErr.message);
+        }
+      }
       // Attach blobs if they exist
       if (fs.existsSync(BLOBS_FILE)) {
-        config.__blobs = JSON.parse(fs.readFileSync(BLOBS_FILE, "utf-8"));
+        cleanConfig.__blobs = JSON.parse(fs.readFileSync(BLOBS_FILE, "utf-8"));
       }
-      return res.json(config);
+      return res.json(cleanConfig);
     }
     res.json(null);
   } catch (err) {

@@ -21,7 +21,7 @@ import { GlobalBackground } from "./components/GlobalBackground";
 import { GoogleAnalytics } from "./components/GoogleAnalytics";
 import { AdminLayout } from "./admin/AdminLayout";
 import { AdminLogin } from "./admin/pages/AdminLogin";
-import { useSiteStore } from "./store/siteStore";
+import { useSiteStore, isLoremPlaceholder, allSitePages } from "./store/siteStore";
 import { useAdminAuthStore } from "./store/adminAuthStore";
 import { updateRouteMeta } from "./utils/seoHelper";
 import rawWpPages from "./data/wpPages.json";
@@ -304,6 +304,15 @@ export default function App() {
     });
 
     if (matchedStorePage) {
+      if (isLoremPlaceholder(matchedStorePage)) {
+        const canonical = allSitePages.find((p) => {
+          const s = (p.slug || "").replace(/^\/+|\/+$/g, "").toLowerCase();
+          return s === clean || s === resolvedClean || s === leaf || s === resolvedLeaf;
+        });
+        if (canonical) {
+          return { type: "page-sections" as const, page: canonical };
+        }
+      }
       return { type: "page-sections" as const, page: matchedStorePage };
     }
 

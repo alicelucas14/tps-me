@@ -1454,17 +1454,37 @@ function safeLocalStorageSet(key: string, value: any) {
   }
 }
 
+/**
+ * Detects whether a page or section contains placeholder wireframe or dummy content
+ * (e.g. Elementor Lorem Ipsum text, placeholder-wire images, yellow headphones template photo).
+ */
+export function isLoremPlaceholder(page: any): boolean {
+  if (!page) return false;
+  const str = typeof page === "string" ? page : JSON.stringify(page);
+  const lower = str.toLowerCase();
+  return (
+    lower.includes("lorem ipsum") ||
+    lower.includes("dolor sit amet") ||
+    lower.includes("placeholder-wire") ||
+    str.includes("photo-1518609878373-06d740f60d8b") ||
+    (lower.includes("1. idea") && lower.includes("2. prototype"))
+  );
+}
+
 export const deduplicatePages = (pagesList: PageConfig[]): PageConfig[] => {
   const map = new Map<string, PageConfig>();
   (pagesList || []).forEach((p) => {
     const clean = (p.slug || "").replace(/^\/+|\/+$/g, "").toLowerCase();
-    // If a page with this slug exists, prefer the one with more customized sections or newer
     if (!map.has(clean) || p.isHome) {
       map.set(clean, p);
     } else {
       const existing = map.get(clean)!;
-      if ((p.sections?.length || 0) !== (existing.sections?.length || 0)) {
-        // Keep the version that has been edited
+      // If the currently mapped page is a placeholder but candidate p is clean, replace it immediately
+      if (isLoremPlaceholder(existing) && !isLoremPlaceholder(p)) {
+        map.set(clean, p);
+      } else if (!isLoremPlaceholder(existing) && isLoremPlaceholder(p)) {
+        // Keep existing clean page
+      } else if ((p.sections?.length || 0) !== (existing.sections?.length || 0)) {
         map.set(clean, p);
       }
     }
@@ -1500,6 +1520,30 @@ export const mergePostsWithDefaults = (savedPosts: PostConfig[] | undefined): Po
   }));
 };
 
+/**
+ * Sweeps a list of pages and replaces any placeholder / stale pages
+ * with canonical clean versions from allSitePages.
+ */
+export function healPagesList(pages: PageConfig[]): PageConfig[] {
+  let result = [...pages];
+  allSitePages.forEach((ap) => {
+    const apClean = ap.slug.replace(/^\/+|\/+$/g, "").toLowerCase();
+    result = result.map((p) => {
+      const pClean = p.slug.replace(/^\/+|\/+$/g, "").toLowerCase();
+      if (pClean === apClean) {
+        if (isLoremPlaceholder(p) || apClean === "players-guide") {
+          return ap;
+        }
+      }
+      return p;
+    });
+    if (!result.some((p) => p.slug.replace(/^\/+|\/+$/g, "").toLowerCase() === apClean)) {
+      result.push(ap);
+    }
+  });
+  return deduplicatePages(result);
+}
+
 function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
   try {
     const publishedStr = localStorage.getItem(LOCAL_STORAGE_KEY_PUBLISHED);
@@ -1522,21 +1566,7 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
     if (!published.pages) {
       published.pages = allSitePages;
     } else {
-      // Merge missing allSitePages into published.pages without creating duplicates and heal any stale lorem ipsum pages
-      allSitePages.forEach((ap) => {
-        const apClean = ap.slug.replace(/^\/+|\/+$/g, "").toLowerCase();
-        const existingIdx = published.pages.findIndex(
-          (p: PageConfig) => p.slug.replace(/^\/+|\/+$/g, "").toLowerCase() === apClean
-        );
-        if (existingIdx === -1) {
-          published.pages.push(ap);
-        } else if (
-          published.pages[existingIdx].content?.toLowerCase().includes("lorem ipsum") ||
-          published.pages[existingIdx].excerpt?.toLowerCase().includes("lorem ipsum")
-        ) {
-          published.pages[existingIdx] = ap;
-        }
-      });
+      published.pages = healPagesList(published.pages);
     }
     published.pages = deduplicatePages(published.pages).map((p: PageConfig) => ({
       ...p,
@@ -1584,20 +1614,7 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
     if (!draft.pages) {
       draft.pages = published.pages;
     } else {
-      allSitePages.forEach((ap) => {
-        const apClean = ap.slug.replace(/^\/+|\/+$/g, "").toLowerCase();
-        const existingIdx = draft.pages.findIndex(
-          (p: PageConfig) => p.slug.replace(/^\/+|\/+$/g, "").toLowerCase() === apClean
-        );
-        if (existingIdx === -1) {
-          draft.pages.push(ap);
-        } else if (
-          draft.pages[existingIdx].content?.toLowerCase().includes("lorem ipsum") ||
-          draft.pages[existingIdx].excerpt?.toLowerCase().includes("lorem ipsum")
-        ) {
-          draft.pages[existingIdx] = ap;
-        }
-      });
+      draft.pages = healPagesList(draft.pages);
     }
     draft.pages = deduplicatePages(draft.pages).map((p: PageConfig) => ({
       ...p,
@@ -2558,20 +2575,7 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
         if (!hydrated.pages) {
           hydrated.pages = allSitePages;
         } else {
-          allSitePages.forEach((ap) => {
-            const apClean = ap.slug.replace(/^\/+|\/+$/g, "").toLowerCase();
-            const existingIdx = hydrated.pages.findIndex(
-              (p: PageConfig) => p.slug.replace(/^\/+|\/+$/g, "").toLowerCase() === apClean
-            );
-            if (existingIdx === -1) {
-              hydrated.pages.push(ap);
-            } else if (
-              hydrated.pages[existingIdx].content?.toLowerCase().includes("lorem ipsum") ||
-              hydrated.pages[existingIdx].excerpt?.toLowerCase().includes("lorem ipsum")
-            ) {
-              hydrated.pages[existingIdx] = ap;
-            }
-          });
+          hydrated.pages = healPagesList(hydrated.pages);
         }
         hydrated.pages = deduplicatePages(hydrated.pages).map((p: PageConfig) => ({
           ...p,
