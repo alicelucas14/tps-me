@@ -11,9 +11,7 @@ import {
   Search,
   Copy,
   Check,
-  CheckCircle2,
   Layers,
-  Sparkle,
 } from "lucide-react";
 import { useSiteStore } from "../store/siteStore";
 import { DEFAULT_BASE_URL } from "../utils/seoHelper";

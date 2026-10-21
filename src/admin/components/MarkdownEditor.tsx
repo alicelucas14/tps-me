@@ -14,8 +14,10 @@ import {
   Maximize2,
   Eye,
   FileCode,
+  Upload,
 } from "lucide-react";
 import { MarkdownRenderer } from "../../components/MarkdownRenderer";
+import { compressImageFile } from "../../utils/imageCompressor";
 
 export interface MarkdownEditorProps {
   label?: string;
@@ -70,6 +72,33 @@ export function MarkdownEditor({
   // Image state
   const [imgAlt, setImgAlt] = useState("");
   const [imgUrl, setImgUrl] = useState("");
+  const [imgTab, setImgTab] = useState<"upload" | "url" | "presets">("upload");
+  const [isImgCompressing, setIsImgCompressing] = useState(false);
+  const [imgError, setImgError] = useState<string | null>(null);
+  const [isImgDragging, setIsImgDragging] = useState(false);
+  const editorFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleEditorFileUpload = async (file: File) => {
+    try {
+      setIsImgCompressing(true);
+      setImgError(null);
+      const dataUrl = await compressImageFile(file, {
+        maxWidth: 1200,
+        maxHeight: 800,
+        quality: 0.85,
+        mimeType: "image/webp",
+      });
+      setImgUrl(dataUrl);
+      if (!imgAlt.trim()) {
+        const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]+/g, " ");
+        setImgAlt(cleanName);
+      }
+    } catch (err: any) {
+      setImgError(err?.message || "Failed to process image file");
+    } finally {
+      setIsImgCompressing(false);
+    }
+  };
 
   const handleInsert = (prefix: string, suffix: string = "", defaultText: string = "") => {
     const textarea = textareaRef.current;
@@ -147,11 +176,12 @@ export function MarkdownEditor({
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const selected = (value || "").substring(start, end);
-      setImgAlt(selected || "Image Description");
+      setImgAlt(selected || "");
     } else {
-      setImgAlt("Image Description");
+      setImgAlt("");
     }
-    setImgUrl(PRESET_IMAGES[0].url);
+    setImgUrl("");
+    setImgTab("upload");
     setShowImgModal(true);
   };
 
@@ -446,17 +476,140 @@ export function MarkdownEditor({
               </button>
             </div>
 
+            {/* TAB SELECTOR */}
+            <div className="flex rounded-lg bg-black/40 p-1 border border-white/10 mb-4">
+              <button
+                type="button"
+                onClick={() => setImgTab("upload")}
+                className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition-all ${
+                  imgTab === "upload"
+                    ? "bg-blue-500 text-white shadow"
+                    : "text-white/60 hover:text-white"
+                }`}
+              >
+                Upload File
+              </button>
+              <button
+                type="button"
+                onClick={() => setImgTab("url")}
+                className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition-all ${
+                  imgTab === "url"
+                    ? "bg-blue-500 text-white shadow"
+                    : "text-white/60 hover:text-white"
+                }`}
+              >
+                Web URL
+              </button>
+              <button
+                type="button"
+                onClick={() => setImgTab("presets")}
+                className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition-all ${
+                  imgTab === "presets"
+                    ? "bg-blue-500 text-white shadow"
+                    : "text-white/60 hover:text-white"
+                }`}
+              >
+                Presets
+              </button>
+            </div>
+
             <div className="space-y-3">
-              <div>
-                <label className="text-[11px] font-semibold text-white/70">Image Source URL</label>
-                <input
-                  type="text"
-                  value={imgUrl}
-                  onChange={(e) => setImgUrl(e.target.value)}
-                  placeholder="https://domain.com/image.jpg"
-                  className="mt-1 w-full rounded-xl border border-white/10 bg-black/60 px-3.5 py-2.5 text-xs text-blue-300 font-mono focus:border-blue-400 focus:outline-none"
-                />
-              </div>
+              {/* TAB 1: UPLOAD */}
+              {imgTab === "upload" && (
+                <div>
+                  <input
+                    type="file"
+                    ref={editorFileInputRef}
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleEditorFileUpload(file);
+                      e.target.value = "";
+                    }}
+                    className="hidden"
+                  />
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsImgDragging(true);
+                    }}
+                    onDragLeave={() => setIsImgDragging(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsImgDragging(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) handleEditorFileUpload(file);
+                    }}
+                    onClick={() => editorFileInputRef.current?.click()}
+                    className={`cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-all ${
+                      isImgDragging
+                        ? "border-blue-400 bg-blue-500/15"
+                        : "border-white/15 bg-black/40 hover:border-blue-400/50 hover:bg-black/60"
+                    }`}
+                  >
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="rounded-full bg-blue-500/15 p-3 text-blue-400">
+                        {isImgCompressing ? (
+                          <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
+                        ) : (
+                          <Upload className="h-5 w-5" />
+                        )}
+                      </div>
+                      <div className="text-xs font-bold text-white">
+                        {isImgCompressing ? "Processing & compressing image..." : "Drag & drop image here"}
+                      </div>
+                      <div className="text-[11px] text-white/50">
+                        or <span className="text-blue-400 underline">browse files from your device</span>
+                      </div>
+                    </div>
+                  </div>
+                  {imgError && <div className="mt-1 text-xs text-rose-400">{imgError}</div>}
+                </div>
+              )}
+
+              {/* TAB 2: URL */}
+              {imgTab === "url" && (
+                <div>
+                  <label className="text-[11px] font-semibold text-white/70">Image Source URL</label>
+                  <input
+                    type="text"
+                    value={imgUrl}
+                    onChange={(e) => setImgUrl(e.target.value)}
+                    placeholder="https://domain.com/image.jpg"
+                    className="mt-1 w-full rounded-xl border border-white/10 bg-black/60 px-3.5 py-2.5 text-xs text-blue-300 font-mono focus:border-blue-400 focus:outline-none"
+                  />
+                </div>
+              )}
+
+              {/* TAB 3: PRESETS */}
+              {imgTab === "presets" && (
+                <div>
+                  <label className="text-[10px] text-white/40 uppercase font-semibold">Select High Quality Preset Media:</label>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {PRESET_IMAGES.map((preset) => (
+                      <div
+                        key={preset.url}
+                        onClick={() => {
+                          setImgUrl(preset.url);
+                          setImgAlt(preset.label);
+                        }}
+                        className={`cursor-pointer overflow-hidden rounded-xl border p-2 text-left transition-all ${
+                          imgUrl === preset.url
+                            ? "border-blue-500 bg-blue-500/15"
+                            : "border-white/10 bg-black/40 hover:border-white/20"
+                        }`}
+                      >
+                        <img
+                          src={preset.url}
+                          alt={preset.label}
+                          className="h-16 w-full object-cover rounded-lg mb-1.5"
+                        />
+                        <span className="block text-[11px] font-semibold text-white/90 truncate">{preset.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="text-[11px] font-semibold text-white/70">Alt Text / Caption</label>
@@ -469,35 +622,37 @@ export function MarkdownEditor({
                 />
               </div>
 
-              <div>
-                <label className="text-[10px] text-white/40 uppercase font-semibold">Select High Quality Preset Media:</label>
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  {PRESET_IMAGES.map((preset) => (
-                    <div
-                      key={preset.url}
-                      onClick={() => {
-                        setImgUrl(preset.url);
-                        setImgAlt(preset.label);
-                      }}
-                      className={`cursor-pointer overflow-hidden rounded-xl border p-2 text-left transition-all ${
-                        imgUrl === preset.url
-                          ? "border-blue-500 bg-blue-500/15"
-                          : "border-white/10 bg-black/40 hover:border-white/20"
-                      }`}
-                    >
-                      <img
-                        src={preset.url}
-                        alt={preset.label}
-                        className="h-16 w-full object-cover rounded-lg mb-1.5"
-                      />
-                      <span className="block text-[11px] font-semibold text-white/90 truncate">{preset.label}</span>
+              {/* Selected Image Preview */}
+              {imgUrl && (
+                <div className="rounded-xl border border-white/10 bg-black/40 p-2.5 flex items-center gap-3">
+                  <img
+                    src={imgUrl}
+                    alt={imgAlt || "Preview"}
+                    className="h-14 w-20 rounded-lg object-cover border border-white/10"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold text-white truncate">
+                      {imgUrl.startsWith("data:image/") ? "Custom Uploaded Image" : "Web Image"}
                     </div>
-                  ))}
+                    <div className="text-[10px] text-white/40 truncate">
+                      {imgAlt || "(No caption)"}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImgUrl("");
+                      setImgAlt("");
+                    }}
+                    className="text-white/40 hover:text-rose-400 text-xs px-2 py-1"
+                  >
+                    Clear
+                  </button>
                 </div>
-              </div>
+              )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
               <button
                 type="button"
                 onClick={() => setShowImgModal(false)}
@@ -508,7 +663,8 @@ export function MarkdownEditor({
               <button
                 type="button"
                 onClick={confirmInsertImage}
-                className="flex items-center gap-1.5 rounded-xl bg-blue-500 px-4 py-2 text-xs font-bold text-white hover:bg-blue-400 shadow-lg shadow-blue-500/20 transition-all"
+                disabled={!imgUrl || isImgCompressing}
+                className="flex items-center gap-1.5 rounded-xl bg-blue-500 px-4 py-2 text-xs font-bold text-white hover:bg-blue-400 shadow-lg shadow-blue-500/20 transition-all disabled:opacity-50"
               >
                 <Check className="h-3.5 w-3.5" />
                 <span>Insert Image</span>

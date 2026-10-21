@@ -143,6 +143,57 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
           );
         }
 
+        // Markdown Table support
+        const tableLines = trimmed.split("\n").map((l) => l.trim()).filter(Boolean);
+        if (
+          tableLines.length >= 2 &&
+          tableLines[0].startsWith("|") &&
+          tableLines.some((l) => /^\|(\s*:?-+:?\s*\|)+$/.test(l))
+        ) {
+          const sepIndex = tableLines.findIndex((l) => /^\|(\s*:?-+:?\s*\|)+$/.test(l));
+          if (sepIndex > 0) {
+            const headerLine = tableLines[0];
+            const headerCells = headerLine
+              .split("|")
+              .slice(1, -1)
+              .map((c) => c.trim());
+            const bodyLines = tableLines.slice(sepIndex + 1);
+
+            return (
+              <div key={idx} className="my-6 overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.02] shadow-xl">
+                <table className="w-full text-left text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/10 bg-white/[0.04]">
+                      {headerCells.map((h, hIdx) => (
+                        <th key={hIdx} className="px-4 py-3 font-semibold text-emerald-300">
+                          {renderInline(h)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {bodyLines.map((row, rIdx) => {
+                      const cells = row
+                        .split("|")
+                        .slice(1, -1)
+                        .map((c) => c.trim());
+                      return (
+                        <tr key={rIdx} className="hover:bg-white/[0.02] transition-colors">
+                          {cells.map((cell, cIdx) => (
+                            <td key={cIdx} className="px-4 py-3 text-white/80">
+                              {renderInline(cell)}
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          }
+        }
+
         // Regular Paragraph
         return (
           <p key={idx} className="text-white/80 text-[15px] leading-relaxed">

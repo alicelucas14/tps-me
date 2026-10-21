@@ -30,6 +30,7 @@ import { useSiteStore, type PostConfig } from "../../store/siteStore";
 import { MarkdownRenderer } from "../../components/MarkdownRenderer";
 import { WordPressImporterModal } from "./WordPressImporterModal";
 import { getPostCoverImage, handleImageError } from "../../utils/imageFallback";
+import { compressImageFile } from "../../utils/imageCompressor";
 
 const PRESET_IMAGES = [
   {
@@ -96,7 +97,64 @@ export function PostsManager() {
   const [linkText, setLinkText] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
 
+  // Cover image management state
+  const [isCoverCompressing, setIsCoverCompressing] = useState(false);
+  const [coverFileError, setCoverFileError] = useState<string | null>(null);
+  const [showCoverUrlInput, setShowCoverUrlInput] = useState(false);
+  const [showCoverPresets, setShowCoverPresets] = useState(false);
+  const [isCoverDragging, setIsCoverDragging] = useState(false);
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Article image modal tab & upload state
+  const [imageSourceTab, setImageSourceTab] = useState<"upload" | "url" | "presets">("upload");
+  const [isArticleImgCompressing, setIsArticleImgCompressing] = useState(false);
+  const [articleImgError, setArticleImgError] = useState<string | null>(null);
+  const [isArticleImgDragging, setIsArticleImgDragging] = useState(false);
+  const articleFileInputRef = useRef<HTMLInputElement>(null);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Upload handler for featured cover image
+  const handleCoverFileUpload = async (file: File) => {
+    try {
+      setIsCoverCompressing(true);
+      setCoverFileError(null);
+      const dataUrl = await compressImageFile(file, {
+        maxWidth: 1400,
+        maxHeight: 800,
+        quality: 0.85,
+        mimeType: "image/webp",
+      });
+      setCoverImage(dataUrl);
+    } catch (err: any) {
+      setCoverFileError(err?.message || "Failed to process image file");
+    } finally {
+      setIsCoverCompressing(false);
+    }
+  };
+
+  // Upload handler for inline article image
+  const handleArticleFileUpload = async (file: File) => {
+    try {
+      setIsArticleImgCompressing(true);
+      setArticleImgError(null);
+      const dataUrl = await compressImageFile(file, {
+        maxWidth: 1200,
+        maxHeight: 800,
+        quality: 0.85,
+        mimeType: "image/webp",
+      });
+      setImgUrl(dataUrl);
+      if (!imgAlt.trim()) {
+        const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]+/g, " ");
+        setImgAlt(cleanName);
+      }
+    } catch (err: any) {
+      setArticleImgError(err?.message || "Failed to process image file");
+    } finally {
+      setIsArticleImgCompressing(false);
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilterCategory, setSelectedFilterCategory] = useState("All");
@@ -712,25 +770,164 @@ export function PostsManager() {
                     />
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-white/50">
-                        Cover Header Image URL
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-white/50 flex items-center gap-1.5">
+                        <ImageIcon className="h-3.5 w-3.5 text-emerald-400" />
+                        <span>Featured Cover Image</span>
                       </label>
-                      <button
-                        onClick={() => setCoverImage(PRESET_IMAGES[0].url)}
-                        className="text-[10px] text-emerald-400 hover:underline"
-                      >
-                        Use Sample Cover
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowCoverUrlInput(!showCoverUrlInput)}
+                          className="text-[10px] text-white/50 hover:text-white hover:underline"
+                        >
+                          {showCoverUrlInput ? "Hide URL" : "Enter URL"}
+                        </button>
+                        <span className="text-white/20">·</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowCoverPresets(!showCoverPresets)}
+                          className="text-[10px] text-white/50 hover:text-white hover:underline"
+                        >
+                          {showCoverPresets ? "Hide Presets" : "Presets"}
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Hidden file input for cover upload */}
                     <input
-                      type="text"
-                      placeholder="https://images.unsplash.com/..."
-                      value={coverImage}
-                      onChange={(e) => setCoverImage(e.target.value)}
-                      className="mt-1 w-full rounded-lg border border-white/10 bg-black/50 px-3 py-1.5 text-xs text-white placeholder-white/30 focus:border-emerald-400 focus:outline-none"
+                      type="file"
+                      ref={coverFileInputRef}
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml,image/avif"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleCoverFileUpload(file);
+                        e.target.value = "";
+                      }}
+                      className="hidden"
                     />
+
+                    {/* Preview or Dropzone */}
+                    {coverImage ? (
+                      <div className="relative group overflow-hidden rounded-xl border border-white/15 bg-black/60 p-2.5">
+                        <div className="flex items-center gap-3">
+                          <div className="relative h-20 w-32 shrink-0 overflow-hidden rounded-lg bg-white/5 border border-white/10">
+                            <img
+                              src={coverImage}
+                              alt="Cover preview"
+                              onError={handleImageError}
+                              className="h-full w-full object-cover"
+                            />
+                            {coverImage.startsWith("data:image/") && (
+                              <span className="absolute bottom-1 left-1 rounded bg-emerald-500/90 px-1 py-0.5 text-[9px] font-semibold text-black uppercase tracking-wider">
+                                Custom
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-semibold text-white truncate">
+                              {coverImage.startsWith("data:image/") ? "Custom User Upload" : "Featured Photo"}
+                            </div>
+                            <div className="mt-0.5 text-[10px] text-white/40 truncate">
+                              {coverImage.startsWith("data:image/") ? "Optimized WebP Image" : coverImage}
+                            </div>
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => coverFileInputRef.current?.click()}
+                                disabled={isCoverCompressing}
+                                className="inline-flex items-center gap-1 rounded-md bg-emerald-500/20 border border-emerald-500/40 px-2.5 py-1 text-[11px] font-medium text-emerald-300 hover:bg-emerald-500/30"
+                              >
+                                <Upload className="h-3 w-3" />
+                                <span>{isCoverCompressing ? "Compressing..." : "Change Image"}</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCoverImage("")}
+                                className="inline-flex items-center gap-1 rounded-md bg-rose-500/10 border border-rose-500/30 px-2 py-1 text-[11px] font-medium text-rose-300 hover:bg-rose-500/20"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                <span>Remove / Reset</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setIsCoverDragging(true);
+                        }}
+                        onDragLeave={() => setIsCoverDragging(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setIsCoverDragging(false);
+                          const file = e.dataTransfer.files?.[0];
+                          if (file) handleCoverFileUpload(file);
+                        }}
+                        onClick={() => coverFileInputRef.current?.click()}
+                        className={`group cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-all ${
+                          isCoverDragging
+                            ? "border-emerald-400 bg-emerald-500/10"
+                            : "border-white/15 bg-white/[0.02] hover:border-emerald-400/50 hover:bg-white/[0.04]"
+                        }`}
+                      >
+                        <div className="flex flex-col items-center justify-center gap-1.5">
+                          <div className="rounded-full bg-emerald-500/15 p-2 text-emerald-400 group-hover:scale-110 transition-transform">
+                            {isCoverCompressing ? (
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent" />
+                            ) : (
+                              <Upload className="h-4 w-4" />
+                            )}
+                          </div>
+                          <div className="text-xs font-semibold text-white">
+                            {isCoverCompressing ? "Optimizing image..." : "Click or drag your custom cover photo here"}
+                          </div>
+                          <div className="text-[10px] text-white/40">
+                            PNG, JPG, WebP supported · Client-side compressed & optimized
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {coverFileError && (
+                      <div className="text-[11px] text-rose-400">{coverFileError}</div>
+                    )}
+
+                    {/* Optional URL input toggle */}
+                    {showCoverUrlInput && (
+                      <div className="pt-1">
+                        <input
+                          type="text"
+                          placeholder="Or paste an image URL (https://...)"
+                          value={coverImage}
+                          onChange={(e) => setCoverImage(e.target.value)}
+                          className="w-full rounded-lg border border-white/10 bg-black/50 px-3 py-1.5 text-xs text-white placeholder-white/30 focus:border-emerald-400 focus:outline-none"
+                        />
+                      </div>
+                    )}
+
+                    {/* Optional Presets grid */}
+                    {showCoverPresets && (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+                        {PRESET_IMAGES.map((preset, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => {
+                              setCoverImage(preset.url);
+                              setShowCoverPresets(false);
+                            }}
+                            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 p-1.5 text-left hover:border-emerald-400 hover:bg-emerald-500/10"
+                          >
+                            <img src={preset.url} alt={preset.label} className="h-7 w-7 rounded object-cover" />
+                            <span className="truncate text-[10px] text-white/80">{preset.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -832,8 +1029,9 @@ export function PostsManager() {
               {/* INSERT IMAGE BUTTON */}
               <button
                 onClick={() => {
-                  setImgUrl(PRESET_IMAGES[0].url);
-                  setImgAlt("Teen Patti Card Table");
+                  setImgUrl("");
+                  setImgAlt("");
+                  setImageSourceTab("upload");
                   setShowImageModal(true);
                 }}
                 className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-300 transition-all hover:bg-emerald-500/25 active:scale-95"
@@ -967,26 +1165,161 @@ export function PostsManager() {
       {showImageModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0b1014] p-6 shadow-2xl">
-            <div className="flex items-center gap-2 text-emerald-400">
-              <ImageIcon className="h-5 w-5" />
-              <h4 className="text-sm font-bold text-white">Insert Image into Article</h4>
+            <div className="flex items-center justify-between text-emerald-400">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5" />
+                <h4 className="text-sm font-bold text-white">Insert Image into Article</h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowImageModal(false)}
+                className="text-white/40 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
             <p className="mt-1 text-xs text-white/50">
-              Enter an image URL or choose one of our high-resolution preset photos.
+              Upload your own custom image from your computer, enter an image URL, or choose a royalty-free preset photo.
             </p>
 
-            <div className="mt-4 space-y-3">
-              <div>
-                <label className="text-[11px] font-semibold text-white/70">Image Web URL (https://...)</label>
-                <input
-                  type="text"
-                  placeholder="https://images.unsplash.com/..."
-                  value={imgUrl}
-                  onChange={(e) => setImgUrl(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-black/50 px-3 py-2 text-xs text-white focus:border-emerald-400 focus:outline-none"
-                />
-              </div>
+            {/* TAB SELECTOR */}
+            <div className="mt-4 flex rounded-lg bg-black/40 p-1 border border-white/10">
+              <button
+                type="button"
+                onClick={() => setImageSourceTab("upload")}
+                className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition-all ${
+                  imageSourceTab === "upload"
+                    ? "bg-emerald-500 text-black shadow"
+                    : "text-white/60 hover:text-white"
+                }`}
+              >
+                Upload Image
+              </button>
+              <button
+                type="button"
+                onClick={() => setImageSourceTab("url")}
+                className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition-all ${
+                  imageSourceTab === "url"
+                    ? "bg-emerald-500 text-black shadow"
+                    : "text-white/60 hover:text-white"
+                }`}
+              >
+                Image URL
+              </button>
+              <button
+                type="button"
+                onClick={() => setImageSourceTab("presets")}
+                className={`flex-1 rounded-md py-1.5 text-xs font-semibold transition-all ${
+                  imageSourceTab === "presets"
+                    ? "bg-emerald-500 text-black shadow"
+                    : "text-white/60 hover:text-white"
+                }`}
+              >
+                Preset Photos
+              </button>
+            </div>
 
+            <div className="mt-4 space-y-3">
+              {/* TAB 1: UPLOAD FROM COMPUTER */}
+              {imageSourceTab === "upload" && (
+                <div>
+                  <input
+                    type="file"
+                    ref={articleFileInputRef}
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml,image/avif"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleArticleFileUpload(file);
+                      e.target.value = "";
+                    }}
+                    className="hidden"
+                  />
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsArticleImgDragging(true);
+                    }}
+                    onDragLeave={() => setIsArticleImgDragging(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsArticleImgDragging(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) handleArticleFileUpload(file);
+                    }}
+                    onClick={() => articleFileInputRef.current?.click()}
+                    className={`cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-all ${
+                      isArticleImgDragging
+                        ? "border-emerald-400 bg-emerald-500/15"
+                        : "border-white/15 bg-black/40 hover:border-emerald-400/50 hover:bg-black/60"
+                    }`}
+                  >
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="rounded-full bg-emerald-500/15 p-3 text-emerald-400">
+                        {isArticleImgCompressing ? (
+                          <div className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent" />
+                        ) : (
+                          <Upload className="h-5 w-5" />
+                        )}
+                      </div>
+                      <div className="text-xs font-bold text-white">
+                        {isArticleImgCompressing ? "Processing & optimizing image..." : "Drag & drop your custom image here"}
+                      </div>
+                      <div className="text-[11px] text-white/50">
+                        or <span className="text-emerald-400 underline">browse files from your computer</span>
+                      </div>
+                      <div className="text-[10px] text-white/30">
+                        PNG, JPG, WebP · Automatically compressed for best performance
+                      </div>
+                    </div>
+                  </div>
+                  {articleImgError && (
+                    <div className="mt-1 text-xs text-rose-400">{articleImgError}</div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 2: WEB URL */}
+              {imageSourceTab === "url" && (
+                <div>
+                  <label className="text-[11px] font-semibold text-white/70">Image Web URL (https://...)</label>
+                  <input
+                    type="text"
+                    placeholder="https://images.unsplash.com/..."
+                    value={imgUrl}
+                    onChange={(e) => setImgUrl(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-white/10 bg-black/50 px-3 py-2 text-xs text-white focus:border-emerald-400 focus:outline-none"
+                  />
+                </div>
+              )}
+
+              {/* TAB 3: PRESETS */}
+              {imageSourceTab === "presets" && (
+                <div>
+                  <label className="text-[11px] font-semibold text-white/70">Or Select a Quick Royalty-Free Photo:</label>
+                  <div className="mt-1.5 grid grid-cols-2 gap-2">
+                    {PRESET_IMAGES.map((preset, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          setImgUrl(preset.url);
+                          setImgAlt(preset.label);
+                        }}
+                        className={`flex items-center gap-2 rounded-lg border p-2 text-left text-xs transition-all ${
+                          imgUrl === preset.url
+                            ? "border-emerald-400 bg-emerald-500/20 text-white"
+                            : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+                        }`}
+                      >
+                        <img src={preset.url} alt={preset.label} className="h-8 w-8 rounded object-cover" />
+                        <span className="truncate text-[11px] font-medium">{preset.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Image Caption / Alt Text */}
               <div>
                 <label className="text-[11px] font-semibold text-white/70">Image Caption / Alt Text</label>
                 <input
@@ -998,42 +1331,50 @@ export function PostsManager() {
                 />
               </div>
 
-              <div>
-                <label className="text-[11px] font-semibold text-white/70">Or Select a Quick Royalty-Free Photo:</label>
-                <div className="mt-1.5 grid grid-cols-2 gap-2">
-                  {PRESET_IMAGES.map((preset, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => {
-                        setImgUrl(preset.url);
-                        setImgAlt(preset.label);
-                      }}
-                      className={`flex items-center gap-2 rounded-lg border p-2 text-left text-xs transition-all ${
-                        imgUrl === preset.url
-                          ? "border-emerald-400 bg-emerald-500/20 text-white"
-                          : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
-                      }`}
-                    >
-                      <img src={preset.url} alt={preset.label} className="h-8 w-8 rounded object-cover" />
-                      <span className="truncate text-[11px] font-medium">{preset.label}</span>
-                    </button>
-                  ))}
+              {/* Selected Image Preview */}
+              {imgUrl && (
+                <div className="rounded-xl border border-white/10 bg-black/40 p-2.5 flex items-center gap-3">
+                  <img
+                    src={imgUrl}
+                    alt={imgAlt || "Preview"}
+                    onError={handleImageError}
+                    className="h-14 w-20 rounded-lg object-cover border border-white/10"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold text-white truncate">
+                      {imgUrl.startsWith("data:image/") ? "Custom Uploaded Image" : "Web Image"}
+                    </div>
+                    <div className="text-[10px] text-white/40 truncate">
+                      Alt: {imgAlt || "(No caption yet)"}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImgUrl("");
+                      setImgAlt("");
+                    }}
+                    className="text-white/40 hover:text-rose-400 text-xs px-2 py-1"
+                  >
+                    Clear
+                  </button>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="mt-6 flex justify-end gap-2 border-t border-white/10 pt-4">
               <button
+                type="button"
                 onClick={() => setShowImageModal(false)}
                 className="rounded-lg border border-white/10 px-4 py-2 text-xs text-white/70 hover:bg-white/5"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleInsertImage}
-                disabled={!imgUrl}
-                className="flex items-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-600 disabled:opacity-50"
+                disabled={!imgUrl || isArticleImgCompressing}
+                className="flex items-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2 text-xs font-bold text-black hover:bg-emerald-400 disabled:opacity-50"
               >
                 <Check className="h-3.5 w-3.5" />
                 <span>Insert Image</span>

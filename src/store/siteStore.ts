@@ -1355,7 +1355,7 @@ export function getPublishSecret(): string {
  * Returns a payload safe to JSON-stringify into the main config keys.
  */
 function stripAndSaveBlobs(value: any): any {
-  if (!value || typeof value !== "object" || !Array.isArray(value.sections)) return value;
+  if (!value || typeof value !== "object") return value;
   try {
     const existingBlobs: Record<string, string> = JSON.parse(
       localStorage.getItem(IMAGE_BLOBS_KEY) || "{}"
@@ -1366,49 +1366,119 @@ function stripAndSaveBlobs(value: any): any {
       { sectionKey: "logoUrl", field: "logoUrl" },
       { sectionKey: "faviconUrl", field: "faviconUrl" },
     ];
-    const cleanedSections = value.sections.map((sec: any) => {
-      if (!sec.data) return sec;
-      const cleanData = { ...sec.data };
-      for (const { field } of blobFields) {
-        const val: string | undefined = cleanData[field];
-        if (val && val.startsWith("data:")) {
-          newBlobs[`${sec.id}__${field}`] = val;
-          cleanData[field] = `__blob__${sec.id}__${field}__`;
+
+    let cleanedSections = value.sections;
+    if (Array.isArray(value.sections)) {
+      cleanedSections = value.sections.map((sec: any) => {
+        if (!sec.data) return sec;
+        const cleanData = { ...sec.data };
+        for (const { field } of blobFields) {
+          const val: string | undefined = cleanData[field];
+          if (val && val.startsWith("data:")) {
+            newBlobs[`${sec.id}__${field}`] = val;
+            cleanData[field] = `__blob__${sec.id}__${field}__`;
+          }
         }
-      }
-      return { ...sec, data: cleanData };
-    });
+        return { ...sec, data: cleanData };
+      });
+    }
+
+    let cleanedPosts = value.posts;
+    if (Array.isArray(value.posts)) {
+      cleanedPosts = value.posts.map((p: any) => {
+        if (p.coverImage && typeof p.coverImage === "string" && p.coverImage.startsWith("data:")) {
+          const blobKey = `post__${p.id || p.slug}__coverImage`;
+          newBlobs[blobKey] = p.coverImage;
+          return { ...p, coverImage: `__blob__${blobKey}__` };
+        }
+        return p;
+      });
+    }
+
+    let cleanedPages = value.pages;
+    if (Array.isArray(value.pages)) {
+      cleanedPages = value.pages.map((p: any) => {
+        if (p.coverImage && typeof p.coverImage === "string" && p.coverImage.startsWith("data:")) {
+          const blobKey = `page__${p.id || p.slug}__coverImage`;
+          newBlobs[blobKey] = p.coverImage;
+          return { ...p, coverImage: `__blob__${blobKey}__` };
+        }
+        return p;
+      });
+    }
+
     localStorage.setItem(IMAGE_BLOBS_KEY, JSON.stringify(newBlobs));
-    return { ...value, sections: cleanedSections };
+    return {
+      ...value,
+      sections: cleanedSections,
+      posts: cleanedPosts,
+      pages: cleanedPages,
+    };
   } catch {
     return value;
   }
 }
 
 /**
- * Re-hydrate blob placeholders back into section data from IMAGE_BLOBS_KEY.
+ * Re-hydrate blob placeholders back into section and post data from IMAGE_BLOBS_KEY.
  */
 export function rehydrateBlobs(config: any): any {
-  if (!config || !Array.isArray(config.sections)) return config;
+  if (!config || typeof config !== "object") return config;
   try {
     const blobs: Record<string, string> = JSON.parse(
       localStorage.getItem(IMAGE_BLOBS_KEY) || "{}"
     );
     if (Object.keys(blobs).length === 0) return config;
-    const hydratedSections = config.sections.map((sec: any) => {
-      if (!sec.data) return sec;
-      const hydratedData = { ...sec.data };
-      for (const [blobKey, blobVal] of Object.entries(blobs)) {
-        const placeholder = `__blob__${blobKey}__`;
-        for (const field of Object.keys(hydratedData)) {
-          if (hydratedData[field] === placeholder) {
-            hydratedData[field] = blobVal;
+
+    let hydratedSections = config.sections;
+    if (Array.isArray(config.sections)) {
+      hydratedSections = config.sections.map((sec: any) => {
+        if (!sec.data) return sec;
+        const hydratedData = { ...sec.data };
+        for (const [blobKey, blobVal] of Object.entries(blobs)) {
+          const placeholder = `__blob__${blobKey}__`;
+          for (const field of Object.keys(hydratedData)) {
+            if (hydratedData[field] === placeholder) {
+              hydratedData[field] = blobVal;
+            }
           }
         }
-      }
-      return { ...sec, data: hydratedData };
-    });
-    return { ...config, sections: hydratedSections };
+        return { ...sec, data: hydratedData };
+      });
+    }
+
+    let hydratedPosts = config.posts;
+    if (Array.isArray(config.posts)) {
+      hydratedPosts = config.posts.map((p: any) => {
+        if (p.coverImage && typeof p.coverImage === "string" && p.coverImage.startsWith("__blob__")) {
+          const match = p.coverImage.match(/^__blob__(.+)__$/);
+          if (match && blobs[match[1]]) {
+            return { ...p, coverImage: blobs[match[1]] };
+          }
+        }
+        return p;
+      });
+    }
+
+    let hydratedPages = config.pages;
+    if (Array.isArray(config.pages)) {
+      hydratedPages = config.pages.map((p: any) => {
+        if (p.coverImage && typeof p.coverImage === "string" && p.coverImage.startsWith("__blob__")) {
+          const match = p.coverImage.match(/^__blob__(.+)__$/);
+          if (match && blobs[match[1]]) {
+            return { ...p, coverImage: blobs[match[1]] };
+          }
+        }
+        return p;
+      });
+    }
+
+    return {
+      ...config,
+      sections: hydratedSections,
+      posts: hydratedPosts,
+      pages: hydratedPages,
+    };
   } catch {
     return config;
   }
