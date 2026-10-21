@@ -53,6 +53,7 @@ import {
   IMAGE_PRESETS,
 } from "../../utils/backgroundPresets";
 import { MarkdownEditor } from "../components/MarkdownEditor";
+import { ImagePickerModal } from "../components/ImagePickerModal";
 
 export function LeftPanel() {
   const {
@@ -426,6 +427,7 @@ function SectionInspector({
   const [subTab, setSubTab] = useState<"content" | "style" | "advanced">("content");
   const [accordionOpen, setAccordionOpen] = useState(true);
   const [showTypographyPopover, setShowTypographyPopover] = useState(false);
+  const [isHeroPickerOpen, setIsHeroPickerOpen] = useState(false);
 
   if (!section) {
     return (
@@ -647,9 +649,19 @@ function SectionInspector({
 
                     {d.visualType === "custom-image" ? (
                       <div className="space-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+                        {/* Universal Image Picker Trigger */}
+                        <button
+                          type="button"
+                          onClick={() => setIsHeroPickerOpen(true)}
+                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-2.5 text-xs font-bold text-black shadow-md hover:from-emerald-400 hover:to-teal-400 active:scale-98 transition-all"
+                        >
+                          <Sparkles className="h-4 w-4" />
+                          <span>Choose Any Image (Gallery / Upload / URL)</span>
+                        </button>
+
                         {/* ── Local file upload ── */}
                         <div>
-                          <span className="mb-1 block text-[11px] font-medium text-white/60">Upload from device</span>
+                          <span className="mb-1 block text-[11px] font-medium text-white/60">Or quick upload from device</span>
                           <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-emerald-400/40 bg-emerald-500/10 px-3 py-3 text-[11px] font-medium text-emerald-300 transition hover:bg-emerald-500/20 active:scale-95">
                             <Upload className="h-4 w-4" />
                             Choose image file
@@ -1615,6 +1627,16 @@ function SectionInspector({
           )}
         </>
       )}
+
+      {/* Hero Universal Image Picker Modal */}
+      <ImagePickerModal
+        isOpen={isHeroPickerOpen}
+        onClose={() => setIsHeroPickerOpen(false)}
+        currentImage={d.customImageUrl || ""}
+        onSelectImage={(newUrl) => onUpdateProperty("customImageUrl", newUrl)}
+        title="Choose Hero Character or Graphic"
+        subtitle="Upload your custom picture, select from the gaming gallery, or paste any web link."
+      />
     </div>
   );
 }

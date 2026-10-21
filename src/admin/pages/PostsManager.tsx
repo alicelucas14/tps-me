@@ -31,6 +31,7 @@ import { MarkdownRenderer } from "../../components/MarkdownRenderer";
 import { WordPressImporterModal } from "./WordPressImporterModal";
 import { getPostCoverImage, handleImageError } from "../../utils/imageFallback";
 import { compressImageFile } from "../../utils/imageCompressor";
+import { ImagePickerModal } from "../components/ImagePickerModal";
 
 const PRESET_IMAGES = [
   {
@@ -98,6 +99,8 @@ export function PostsManager() {
   const [linkUrl, setLinkUrl] = useState("");
 
   // Cover image management state
+  const [showCoverPickerModal, setShowCoverPickerModal] = useState(false);
+  const [showArticlePickerModal, setShowArticlePickerModal] = useState(false);
   const [isCoverCompressing, setIsCoverCompressing] = useState(false);
   const [coverFileError, setCoverFileError] = useState<string | null>(null);
   const [showCoverUrlInput, setShowCoverUrlInput] = useState(false);
@@ -776,23 +779,14 @@ export function PostsManager() {
                         <ImageIcon className="h-3.5 w-3.5 text-emerald-400" />
                         <span>Featured Cover Image</span>
                       </label>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setShowCoverUrlInput(!showCoverUrlInput)}
-                          className="text-[10px] text-white/50 hover:text-white hover:underline"
-                        >
-                          {showCoverUrlInput ? "Hide URL" : "Enter URL"}
-                        </button>
-                        <span className="text-white/20">·</span>
-                        <button
-                          type="button"
-                          onClick={() => setShowCoverPresets(!showCoverPresets)}
-                          className="text-[10px] text-white/50 hover:text-white hover:underline"
-                        >
-                          {showCoverPresets ? "Hide Presets" : "Presets"}
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowCoverPickerModal(true)}
+                        className="flex items-center gap-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 px-2.5 py-1 text-[11px] font-bold text-emerald-300 hover:bg-emerald-500/30 transition-all shadow-sm"
+                      >
+                        <Sparkles className="h-3.5 w-3.5 text-amber-300" />
+                        <span>Choose Any Image</span>
+                      </button>
                     </div>
 
                     {/* Hidden file input for cover upload */}
@@ -812,16 +806,25 @@ export function PostsManager() {
                     {coverImage ? (
                       <div className="relative group overflow-hidden rounded-xl border border-white/15 bg-black/60 p-2.5">
                         <div className="flex items-center gap-3">
-                          <div className="relative h-20 w-32 shrink-0 overflow-hidden rounded-lg bg-white/5 border border-white/10">
+                          <div
+                            onClick={() => setShowCoverPickerModal(true)}
+                            className="relative h-20 w-32 shrink-0 cursor-pointer overflow-hidden rounded-lg bg-white/5 border border-white/10 group/img"
+                            title="Click to choose/change image"
+                          >
                             <img
                               src={coverImage}
                               alt="Cover preview"
                               onError={handleImageError}
-                              className="h-full w-full object-cover"
+                              className="h-full w-full object-cover transition-transform group-hover/img:scale-105"
                             />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity">
+                              <span className="text-[10px] font-bold text-white bg-black/80 px-2 py-0.5 rounded border border-white/20">
+                                Change Image
+                              </span>
+                            </div>
                             {coverImage.startsWith("data:image/") && (
                               <span className="absolute bottom-1 left-1 rounded bg-emerald-500/90 px-1 py-0.5 text-[9px] font-semibold text-black uppercase tracking-wider">
-                                Custom
+                                Custom Upload
                               </span>
                             )}
                           </div>
@@ -835,12 +838,20 @@ export function PostsManager() {
                             <div className="mt-2 flex flex-wrap items-center gap-2">
                               <button
                                 type="button"
+                                onClick={() => setShowCoverPickerModal(true)}
+                                className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500 text-black px-2.5 py-1 text-[11px] font-bold hover:bg-emerald-400 transition-all shadow-sm"
+                              >
+                                <Sparkles className="h-3 w-3" />
+                                <span>Choose Any Image</span>
+                              </button>
+                              <button
+                                type="button"
                                 onClick={() => coverFileInputRef.current?.click()}
                                 disabled={isCoverCompressing}
-                                className="inline-flex items-center gap-1 rounded-md bg-emerald-500/20 border border-emerald-500/40 px-2.5 py-1 text-[11px] font-medium text-emerald-300 hover:bg-emerald-500/30"
+                                className="inline-flex items-center gap-1 rounded-md bg-white/10 border border-white/15 px-2.5 py-1 text-[11px] font-medium text-white/80 hover:bg-white/20"
                               >
                                 <Upload className="h-3 w-3" />
-                                <span>{isCoverCompressing ? "Compressing..." : "Change Image"}</span>
+                                <span>{isCoverCompressing ? "Optimizing..." : "Upload File"}</span>
                               </button>
                               <button
                                 type="button"
@@ -848,7 +859,7 @@ export function PostsManager() {
                                 className="inline-flex items-center gap-1 rounded-md bg-rose-500/10 border border-rose-500/30 px-2 py-1 text-[11px] font-medium text-rose-300 hover:bg-rose-500/20"
                               >
                                 <Trash2 className="h-3 w-3" />
-                                <span>Remove / Reset</span>
+                                <span>Remove</span>
                               </button>
                             </div>
                           </div>
@@ -867,7 +878,7 @@ export function PostsManager() {
                           const file = e.dataTransfer.files?.[0];
                           if (file) handleCoverFileUpload(file);
                         }}
-                        onClick={() => coverFileInputRef.current?.click()}
+                        onClick={() => setShowCoverPickerModal(true)}
                         className={`group cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-all ${
                           isCoverDragging
                             ? "border-emerald-400 bg-emerald-500/10"
@@ -879,14 +890,15 @@ export function PostsManager() {
                             {isCoverCompressing ? (
                               <div className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent" />
                             ) : (
-                              <Upload className="h-4 w-4" />
+                              <Sparkles className="h-4 w-4" />
                             )}
                           </div>
-                          <div className="text-xs font-semibold text-white">
-                            {isCoverCompressing ? "Optimizing image..." : "Click or drag your custom cover photo here"}
+                          <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                            <span>Choose Any Featured Image You Want</span>
+                            <span className="rounded bg-emerald-500/20 text-emerald-400 px-1.5 py-0.2 text-[10px]">Click here</span>
                           </div>
-                          <div className="text-[10px] text-white/40">
-                            PNG, JPG, WebP supported · Client-side compressed & optimized
+                          <div className="text-[10px] text-white/50">
+                            Upload your photo, browse gaming gallery, or paste URL · Drag & drop supported
                           </div>
                         </div>
                       </div>
@@ -894,39 +906,6 @@ export function PostsManager() {
 
                     {coverFileError && (
                       <div className="text-[11px] text-rose-400">{coverFileError}</div>
-                    )}
-
-                    {/* Optional URL input toggle */}
-                    {showCoverUrlInput && (
-                      <div className="pt-1">
-                        <input
-                          type="text"
-                          placeholder="Or paste an image URL (https://...)"
-                          value={coverImage}
-                          onChange={(e) => setCoverImage(e.target.value)}
-                          className="w-full rounded-lg border border-white/10 bg-black/50 px-3 py-1.5 text-xs text-white placeholder-white/30 focus:border-emerald-400 focus:outline-none"
-                        />
-                      </div>
-                    )}
-
-                    {/* Optional Presets grid */}
-                    {showCoverPresets && (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
-                        {PRESET_IMAGES.map((preset, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => {
-                              setCoverImage(preset.url);
-                              setShowCoverPresets(false);
-                            }}
-                            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 p-1.5 text-left hover:border-emerald-400 hover:bg-emerald-500/10"
-                          >
-                            <img src={preset.url} alt={preset.label} className="h-7 w-7 rounded object-cover" />
-                            <span className="truncate text-[10px] text-white/80">{preset.label}</span>
-                          </button>
-                        ))}
-                      </div>
                     )}
                   </div>
                 </div>
@@ -1181,6 +1160,17 @@ export function PostsManager() {
             <p className="mt-1 text-xs text-white/50">
               Upload your own custom image from your computer, enter an image URL, or choose a royalty-free preset photo.
             </p>
+
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={() => setShowArticlePickerModal(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 py-2.5 text-xs font-bold text-black shadow-md hover:from-emerald-400 hover:to-teal-400 transition-all"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span>Open Full Image Gallery & Universal Uploader</span>
+              </button>
+            </div>
 
             {/* TAB SELECTOR */}
             <div className="mt-4 flex rounded-lg bg-black/40 p-1 border border-white/10">
@@ -1468,6 +1458,26 @@ export function PostsManager() {
       <WordPressImporterModal
         isOpen={showWpImportModal}
         onClose={() => setShowWpImportModal(false)}
+      />
+
+      {/* Featured Cover Image Picker Modal */}
+      <ImagePickerModal
+        isOpen={showCoverPickerModal}
+        onClose={() => setShowCoverPickerModal(false)}
+        currentImage={coverImage}
+        onSelectImage={(newUrl) => setCoverImage(newUrl)}
+        title="Choose Featured Blog Cover Image"
+        subtitle="Upload your custom picture from your device, select from the gaming gallery, or paste any web link."
+      />
+
+      {/* Article Inline Image Picker Modal */}
+      <ImagePickerModal
+        isOpen={showArticlePickerModal}
+        onClose={() => setShowArticlePickerModal(false)}
+        currentImage={imgUrl}
+        onSelectImage={(newUrl) => setImgUrl(newUrl)}
+        title="Choose Image for Article"
+        subtitle="Select or upload an image to insert into your blog post content."
       />
     </div>
   );
