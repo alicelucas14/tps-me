@@ -21,7 +21,7 @@ import { GlobalBackground } from "./components/GlobalBackground";
 import { GoogleAnalytics } from "./components/GoogleAnalytics";
 import { AdminLayout } from "./admin/AdminLayout";
 import { AdminLogin } from "./admin/pages/AdminLogin";
-import { useSiteStore, isLoremPlaceholder, allSitePages } from "./store/siteStore";
+import { useSiteStore, isLoremPlaceholder, allSitePages, defaultLandingSections } from "./store/siteStore";
 import { useAdminAuthStore } from "./store/adminAuthStore";
 import { updateRouteMeta } from "./utils/seoHelper";
 import rawWpPages from "./data/wpPages.json";
@@ -525,10 +525,22 @@ export default function App() {
     );
   }
 
-  const sectionsToRender =
-    resolved.type === "page-sections"
-      ? (resolved.page?.sections || [])
-      : publishedConfig.sections || [];
+  const sectionsToRender = useMemo(() => {
+    if (resolved.type === "page-sections") {
+      return resolved.page?.sections || [];
+    }
+    if (resolved.type === "home") {
+      const homePage = allPages.find((p) => p.isHome || p.slug === "/" || p.id === "page_home") || allPages[0];
+      if (homePage?.sections && homePage.sections.length > 0 && homePage.sections.some((s) => s.type === "hero" || s.id === "sec_hero")) {
+        return homePage.sections;
+      }
+      if (publishedConfig.sections && publishedConfig.sections.some((s) => s.type === "hero" || s.id === "sec_hero")) {
+        return publishedConfig.sections;
+      }
+      return defaultLandingSections;
+    }
+    return publishedConfig.sections || [];
+  }, [resolved, allPages, publishedConfig.sections]);
 
   return (
     <div

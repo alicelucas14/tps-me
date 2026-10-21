@@ -370,7 +370,7 @@ export interface SiteConfig {
   };
 }
 
-const defaultLandingSections: SectionConfig[] = [
+export const defaultLandingSections: SectionConfig[] = [
   {
     id: "sec_hero",
     type: "hero",
@@ -1644,8 +1644,15 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
     }));
 
     published.posts = mergePostsWithDefaults(published.posts);
+    const homePagePublished = published.pages?.find((p: PageConfig) => p.isHome || p.id === "page_home" || p.slug === "/");
+    const hasPublishedHero = Array.isArray(published.sections) && published.sections.some((s: SectionConfig) => s && (s.type === "hero" || s.id === "sec_hero"));
+    if (!hasPublishedHero) {
+      published.sections = (homePagePublished?.sections && homePagePublished.sections.some((s: SectionConfig) => s && (s.type === "hero" || s.id === "sec_hero")))
+        ? homePagePublished.sections
+        : defaultLandingSections;
+      published.currentPageId = "page_home";
+    }
     if (!published.currentPageId) published.currentPageId = "page_home";
-    if (!published.sections) published.sections = defaultLandingSections;
     if (!published.theme) published.theme = defaultSiteConfig.theme;
     if (!published.theme.background) published.theme.background = defaultSiteConfig.theme.background;
     if (!published.footer) published.footer = defaultFooterConfig;
@@ -1693,8 +1700,15 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
 
     draft.posts = mergePostsWithDefaults(draft.posts);
 
+    const homePageDraft = draft.pages?.find((p: PageConfig) => p.isHome || p.id === "page_home" || p.slug === "/");
+    const hasDraftHero = Array.isArray(draft.sections) && draft.sections.some((s: SectionConfig) => s && (s.type === "hero" || s.id === "sec_hero"));
+    if (!hasDraftHero) {
+      draft.sections = (homePageDraft?.sections && homePageDraft.sections.some((s: SectionConfig) => s && (s.type === "hero" || s.id === "sec_hero")))
+        ? homePageDraft.sections
+        : defaultLandingSections;
+      draft.currentPageId = "page_home";
+    }
     if (!draft.currentPageId) draft.currentPageId = "page_home";
-    if (!draft.sections) draft.sections = defaultLandingSections;
     if (!draft.theme) draft.theme = defaultSiteConfig.theme;
     if (!draft.theme.background) draft.theme.background = defaultSiteConfig.theme.background;
     if (!draft.footer) draft.footer = published.footer || defaultFooterConfig;
@@ -2578,8 +2592,20 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
         const blobs: Record<string, string> = JSON.parse(
           localStorage.getItem(IMAGE_BLOBS_KEY) || "{}"
         );
+        // Ensure root sections in payload represent the Home Landing Page
+        const homePageObj = (draftConfig.pages || []).find((p: PageConfig) => p.isHome || p.id === "page_home" || p.slug === "/");
+        let rootSections = draftConfig.sections;
+        if (draftConfig.currentPageId !== "page_home" && homePageObj?.sections?.length) {
+          rootSections = homePageObj.sections;
+        } else if (!rootSections || !rootSections.some(s => s.type === "hero" || s.id === "sec_hero")) {
+          rootSections = homePageObj?.sections || defaultLandingSections;
+        }
+
         // Build the full config with blobs re-attached for server storage
-        const hydratedConfig = rehydrateBlobs(draftConfig);
+        const hydratedConfig = rehydrateBlobs({
+          ...draftConfig,
+          sections: rootSections,
+        });
         const payload = {
           ...hydratedConfig,
           __blobs: blobs,
@@ -2654,6 +2680,18 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
 
         // Ensure all posts (bundled + server) are merged safely
         hydrated.posts = mergePostsWithDefaults(hydrated.posts);
+
+        // Ensure root sections always represent the home landing page
+        const serverHomePageObj = (hydrated.pages || []).find((p: PageConfig) => p.isHome || p.id === "page_home" || p.slug === "/");
+        const hasServerHero = Array.isArray(hydrated.sections) && hydrated.sections.some((s: SectionConfig) => s && (s.type === "hero" || s.id === "sec_hero"));
+        if (!hasServerHero) {
+          if (serverHomePageObj && Array.isArray(serverHomePageObj.sections) && serverHomePageObj.sections.some((s: SectionConfig) => s && (s.type === "hero" || s.id === "sec_hero"))) {
+            hydrated.sections = serverHomePageObj.sections;
+          } else {
+            hydrated.sections = defaultLandingSections;
+          }
+          hydrated.currentPageId = "page_home";
+        }
 
         // Ensure footer includes defaultFooterConfig fields and saved brand settings
         let savedFooterBrand: Partial<FooterConfig> = {};

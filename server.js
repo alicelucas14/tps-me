@@ -197,8 +197,19 @@ function sanitizeConfig(config) {
         ],
       };
     }
-    return p;
   });
+
+  // Ensure root sections always represent the home landing page
+  const homePage = (config.pages || []).find((p) => p.isHome || p.id === "page_home" || p.slug === "/");
+  const hasValidHeroSection = Array.isArray(config.sections) && config.sections.some((s) => s && (s.type === "hero" || s.id === "sec_hero"));
+
+  if (!hasValidHeroSection) {
+    if (homePage && Array.isArray(homePage.sections) && homePage.sections.some((s) => s && (s.type === "hero" || s.id === "sec_hero"))) {
+      config.sections = homePage.sections;
+      config.currentPageId = "page_home";
+      modified = true;
+    }
+  }
 
   return { config, modified };
 }
