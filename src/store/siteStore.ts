@@ -1489,27 +1489,14 @@ function safeLocalStorageSet(key: string, value: any) {
     if (typeof window === "undefined") return;
     let payload = value;
     if (value && typeof value === "object") {
-      const cleanSlug = (s: string) => (s || "").replace(/^\/+|\/+$/g, "").toLowerCase();
-
-      // Exclude static WP posts that are unmodified to stay well below 5MB quota
+      // Exclude static bundled WP posts from localStorage to save ~2.4MB
       const customPosts = (value.posts || []).filter(
-        (p: any) =>
-          !(rawWpPosts as any[]).some(
-            (wp) =>
-              cleanSlug(wp.slug) === cleanSlug(p.slug) &&
-              wp.title === p.title &&
-              wp.content === p.content
-          )
+        (p: any) => p && !p.id?.startsWith("wp_") && !p.id?.startsWith("post_bundled_")
       );
 
-      // Exclude static WP pages that are unmodified to stay well below 5MB quota
+      // Exclude static bundled WP pages from localStorage to save ~0.6MB
       const customPages = (value.pages || []).filter(
-        (p: any) =>
-          !p.isHome &&
-          p.id !== "page_home" &&
-          !(rawWpPages as any[]).some(
-            (wp) => cleanSlug(wp.slug) === cleanSlug(p.slug)
-          )
+        (p: any) => p && !p.id?.startsWith("wp_")
       );
 
       payload = stripAndSaveBlobs({
@@ -1520,7 +1507,18 @@ function safeLocalStorageSet(key: string, value: any) {
     }
     localStorage.setItem(key, typeof payload === "string" ? payload : JSON.stringify(payload));
   } catch (err) {
-    console.warn("Storage quota warning for key:", key, err);
+    // If quota exceeded, clean up stale legacy cache versions and retry
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k !== key && (k.startsWith("tps_") && !k.includes("v8"))) {
+          localStorage.removeItem(k);
+        }
+      }
+      localStorage.setItem(key, typeof payload === "string" ? payload : JSON.stringify(payload));
+    } catch (retryErr) {
+      console.warn("Storage quota warning for key:", key, retryErr);
+    }
   }
 }
 

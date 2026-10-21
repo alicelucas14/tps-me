@@ -334,6 +334,61 @@ app.post("/api/publish", (req, res) => {
   }
 });
 
+// ── GET /api/backups ────────────────────────────────────────────────────────
+// Lists available rolling backups and inspects them
+app.get("/api/backups", (req, res) => {
+  const secret = req.headers["x-publish-secret"] || req.query.secret;
+  if (secret !== PUBLISH_SECRET) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const BACKUPS_DIR = path.join(DATA_DIR, "backups");
+  const backupFile = path.join(DATA_DIR, "site-config.backup.json");
+  const files = fs.existsSync(BACKUPS_DIR)
+    ? fs.readdirSync(BACKUPS_DIR).filter((f) => f.endsWith(".json")).sort().reverse()
+    : [];
+
+  const fileToGet = req.query.file;
+  if (fileToGet) {
+    const target = fileToGet === "immediate"
+      ? backupFile
+      : path.join(BACKUPS_DIR, path.basename(fileToGet));
+    if (fs.existsSync(target)) {
+      return res.json(JSON.parse(fs.readFileSync(target, "utf-8")));
+    }
+    return res.status(404).json({ error: "Backup file not found" });
+  }
+
+  res.json({
+    hasImmediateBackup: fs.existsSync(backupFile),
+    backups: files,
+  });
+});
+
+// ── POST /api/backups/restore ───────────────────────────────────────────────
+// Restores a specified backup or the immediate backup
+app.post("/api/backups/restore", (req, res) => {
+  const secret = req.headers["x-publish-secret"] || req.body?.secret;
+  if (secret !== PUBLISH_SECRET) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const BACKUPS_DIR = path.join(DATA_DIR, "backups");
+  const { file } = req.body || {};
+  const target = (file && file !== "immediate")
+    ? path.join(BACKUPS_DIR, path.basename(file))
+    : path.join(DATA_DIR, "site-config.backup.json");
+
+  if (!fs.existsSync(target)) {
+    return res.status(404).json({ error: "Backup target not found" });
+  }
+
+  const backupData = JSON.parse(fs.readFileSync(target, "utf-8"));
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(backupData, null, 0));
+  console.log(`[Backups] Restored site-config from ${path.basename(target)}`);
+  return res.json({ success: true, restoredFrom: path.basename(target) });
+});
+
 // ── GET /api/admin/accounts ──────────────────────────────────────────────────
 // Returns the server-side accounts and role permissions (initializes if missing)
 app.get("/api/admin/accounts", (req, res) => {
