@@ -1563,36 +1563,16 @@ export const deduplicatePages = (pagesList: PageConfig[]): PageConfig[] => {
 };
 
 export const mergePostsWithDefaults = (savedPosts: PostConfig[] | undefined): PostConfig[] => {
-  const custom = Array.isArray(savedPosts) ? savedPosts : [];
-  if (custom.length === 0) {
-    return allSitePosts;
+  if (Array.isArray(savedPosts)) {
+    // Respect the user's saved list of posts — never resurrect deleted posts
+    return savedPosts;
   }
-  const customSlugMap = new Map<string, PostConfig>();
-  custom.forEach((p) => {
-    const clean = (p.slug || "").replace(/^\/+|\/+$/g, "").toLowerCase();
-    if (clean) customSlugMap.set(clean, p);
-  });
-
-  // Keep custom posts
-  const merged: PostConfig[] = [...custom];
-
-  // Add default posts if not superseded by a custom post
-  for (const dp of allSitePosts) {
-    const dpClean = (dp.slug || "").replace(/^\/+|\/+$/g, "").toLowerCase();
-    if (!customSlugMap.has(dpClean)) {
-      merged.push(dp);
-    }
-  }
-
-  return merged.map((p) => ({
-    ...p,
-    coverImage: getPostCoverImage(p),
-  }));
+  return allSitePosts;
 };
 
 /**
  * Sweeps a list of pages and replaces any placeholder / stale pages
- * with canonical clean versions from allSitePages.
+ * with canonical clean versions from allSitePages, without re-inserting deleted pages.
  */
 export function healPagesList(pages: PageConfig[]): PageConfig[] {
   let result = [...pages];
@@ -1600,16 +1580,11 @@ export function healPagesList(pages: PageConfig[]): PageConfig[] {
     const apClean = ap.slug.replace(/^\/+|\/+$/g, "").toLowerCase();
     result = result.map((p) => {
       const pClean = p.slug.replace(/^\/+|\/+$/g, "").toLowerCase();
-      if (pClean === apClean) {
-        if (isLoremPlaceholder(p) || apClean === "players-guide") {
-          return ap;
-        }
+      if (pClean === apClean && isLoremPlaceholder(p)) {
+        return ap;
       }
       return p;
     });
-    if (!result.some((p) => p.slug.replace(/^\/+|\/+$/g, "").toLowerCase() === apClean)) {
-      result.push(ap);
-    }
   });
   return deduplicatePages(result);
 }
@@ -1638,10 +1613,7 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
     } else {
       published.pages = healPagesList(published.pages);
     }
-    published.pages = deduplicatePages(published.pages).map((p: PageConfig) => ({
-      ...p,
-      coverImage: getPageCoverImage(p),
-    }));
+    published.pages = deduplicatePages(published.pages);
 
     published.posts = mergePostsWithDefaults(published.posts);
     const homePagePublished = published.pages?.find((p: PageConfig) => p.isHome || p.id === "page_home" || p.slug === "/");
@@ -1693,10 +1665,7 @@ function loadInitialConfig(): { published: SiteConfig; draft: SiteConfig } {
     } else {
       draft.pages = healPagesList(draft.pages);
     }
-    draft.pages = deduplicatePages(draft.pages).map((p: PageConfig) => ({
-      ...p,
-      coverImage: getPageCoverImage(p),
-    }));
+    draft.pages = deduplicatePages(draft.pages);
 
     draft.posts = mergePostsWithDefaults(draft.posts);
 
@@ -2673,10 +2642,7 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
         } else {
           hydrated.pages = healPagesList(hydrated.pages);
         }
-        hydrated.pages = deduplicatePages(hydrated.pages).map((p: PageConfig) => ({
-          ...p,
-          coverImage: getPageCoverImage(p),
-        }));
+        hydrated.pages = deduplicatePages(hydrated.pages);
 
         // Ensure all posts (bundled + server) are merged safely
         hydrated.posts = mergePostsWithDefaults(hydrated.posts);

@@ -136,13 +136,14 @@ export function getPostCoverImage(post: {
   slug?: string;
   id?: string;
 }): string {
-  // If the post has a user-uploaded base64 image or a custom non-stock image, keep it!
+  // If explicitly cleared/removed by the user (empty string, "none"), respect the removal!
+  if (post.coverImage === "" || post.coverImage === "none" || post.coverImage === null) {
+    return "";
+  }
+
+  // If the post has an existing image and it's not a dead/broken legacy WP upload link, keep it!
   if (post.coverImage && !isBrokenImageUrl(post.coverImage)) {
-    const trimmed = post.coverImage.trim();
-    // Custom data URLs (uploaded directly by the user) or external custom assets
-    if (trimmed.startsWith("data:image/") || !isGenericStockImage(trimmed)) {
-      return trimmed;
-    }
+    return post.coverImage.trim();
   }
 
   const text = `${post.title || ""} ${post.category || ""} ${post.slug || ""}`.toLowerCase();
@@ -179,19 +180,13 @@ export function getPageCoverImage(page: {
   slug?: string;
   id?: string;
 }): string {
-  if (page.coverImage && !isBrokenImageUrl(page.coverImage)) {
-    const trimmed = page.coverImage.trim();
-    if (trimmed.startsWith("data:image/") || !isGenericStockImage(trimmed)) {
-      return trimmed;
-    }
+  if (page.coverImage === "" || page.coverImage === "none" || page.coverImage === null) {
+    return "";
   }
-  return getPostCoverImage({
-    coverImage: page.coverImage,
-    title: page.title,
-    slug: page.slug,
-    id: page.id,
-    category: "Official Page",
-  });
+  if (page.coverImage && !isBrokenImageUrl(page.coverImage)) {
+    return page.coverImage.trim();
+  }
+  return "";
 }
 
 /**
