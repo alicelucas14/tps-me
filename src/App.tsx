@@ -411,10 +411,14 @@ export default function App() {
       return;
     }
 
-    if (resolved.type === "not-found" || resolved.type === "loading") {
+    // server.js already sent this URL's real tags. Leave them alone while the site config loads:
+    // marking the page noindex here got pages dropped when Google rendered them mid-load.
+    if (resolved.type === "loading") return;
+
+    if (resolved.type === "not-found") {
       const path = window.location.pathname.replace(/\/+$/, "") || "/";
       updateRouteMeta({
-        title: resolved.type === "loading" ? "Loading… | Teen Patti Stars" : "Page Not Found | Teen Patti Stars",
+        title: "Page Not Found | Teen Patti Stars",
         path,
         noindex: true,
       });
