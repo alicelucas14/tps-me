@@ -466,7 +466,8 @@ app.get("/llms.txt", (req, res) => {
 });
 
 // ── Serve static dist files first ──────────────────────────────────────────
-app.use(express.static(DIST_DIR));
+// index: false so "/" reaches the SEO page handler below instead of the bare index.html
+app.use(express.static(DIST_DIR, { index: false }));
 
 // ── Auto-heal & sanitize site config on server ──────────────────────────────
 // Mirrors isLoremPlaceholder() in src/store/siteStore.ts
@@ -1000,15 +1001,441 @@ app.all("/api/*", (req, res) => {
   res.status(404).json({ error: "Not found" });
 });
 
-// ── SPA fallback ─────────────────────────────────────────────────────────────
-// All non-API, non-static routes serve index.html (for React Router)
-app.get("*", (req, res) => {
-  const indexFile = path.join(DIST_DIR, "index.html");
-  if (fs.existsSync(indexFile)) {
-    res.sendFile(indexFile);
-  } else {
-    res.status(503).send("Site not built yet. Run: npm run build");
+// ── SEO: per-page head tags, status codes and sitemap ───────────────────────
+// Every page is the same index.html, so without this each URL would be sent with the
+// homepage's title, description and canonical link until the React app rewrites them.
+// Here each URL gets its own tags, a plain-HTML copy of its content for crawlers that
+// don't run JavaScript, a 301 to its canonical address, or a real 404. The meta values
+// mirror App.tsx / seoHelper.ts so the tags don't change once the app takes over.
+const SITE_URL = "https://teenpattistars.me";
+const BRAND = "Teen Patti Stars";
+const DEFAULT_OG_IMAGE = "https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=1200&q=80";
+// Must match INDEX_ROBOTS in src/utils/seoHelper.ts
+const INDEX_ROBOTS = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
+const DEFAULT_DESCRIPTION =
+  "Play Teen Patti for real money with instant 30-second UPI payouts, certified RNG fair tables, and ₹25 Crore tournament prize pools.";
+
+// Same aliases and section anchors as App.tsx
+const ROUTE_ALIASES = {
+  "how-to-play": "players-guide",
+  guide: "players-guide",
+  rules: "teen-patti-games",
+  "vip-club": "loyalty-programs",
+  vip: "loyalty-programs",
+  loyalty: "loyalty-programs",
+  tournaments: "leaderboards-and-tournaments",
+  bonuses: "welcome-bonuses",
+  "terms-and-conditions": "privacy-policy",
+  "terms-of-service": "privacy-policy",
+  "responsible-gaming": "players-guide",
+  games: "our-games",
+};
+const SECTION_ANCHORS = new Set(["download", "showcase", "features", "pricing", "testimonials", "benefits", "social"]);
+// Paths the app renders itself, so a page saved with one of these slugs never owns that URL
+const RESERVED_SLUGS = new Set(["", "home", "blog", "blogs", "faq", "faq.html", "sitemap", "sitemap.xml"]);
+
+const trimSlashes = (s) => String(s || "").replace(/^\/+|\/+$/g, "");
+const pageSlug = (p) => trimSlashes(p.slug).toLowerCase();
+const postSlug = (p) => trimSlashes(p.slug).replace(/^blogs?\//, "").toLowerCase();
+const withBrand = (title) => (/teen patti stars/i.test(title) ? title : `${title} | ${BRAND}`);
+const httpImage = (src) => (typeof src === "string" && /^https?:\/\//.test(src) ? src : DEFAULT_OG_IMAGE);
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+// Same as cleanWpExcerpt in src/store/siteStore.ts
+function cleanExcerpt(text) {
+  if (!text) return "";
+  return String(text)
+    .replace(/[\r\n]+/g, " ")
+    .replace(/!\[?[^\]()]*\]?\s*\([^)]*\)/gi, "")
+    .replace(/![^(\s\)]*\([^)]*\)/gi, "")
+    .replace(/!\([^)]*\)/gi, "")
+    .replace(/\(\s*https?:\/\/[^)]*\)/gi, "")
+    .replace(/https?:\/\/\S+/gi, "")
+    .replace(/\[[^\]]*$/g, "")
+    .replace(/^[,\s(:;\\/-]+/, "")
+    .replace(/[,(:;\\/-]+$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Live pages and posts, re-read only when site-config.json changes
+let seoDataCache = null;
+function getSeoData() {
+  const key = fileStamp(CONFIG_FILE);
+  if (seoDataCache && seoDataCache.key === key) return seoDataCache.data;
+  let data = null;
+  try {
+    if (fs.existsSync(CONFIG_FILE)) {
+      const config = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8"));
+      // Without saved pages and posts the app falls back to its bundled copies, which this
+      // server can't see, so leave those URLs to the app rather than 404 them
+      if (Array.isArray(config.pages) && Array.isArray(config.posts)) {
+        const pages = config.pages.filter((p) => p && p.status !== "draft");
+        const home = pages.find((p) => p.isHome || p.slug === "/" || p.id === "page_home");
+        data = {
+          seo: config.seo || {},
+          pages,
+          posts: config.posts.filter((p) => p && p.status !== "draft"),
+          homeSections: home?.sections?.length ? home.sections : config.sections || [],
+        };
+      }
+    }
+  } catch (err) {
+    console.warn("[seo] Could not read site config:", err.message);
   }
+  seoDataCache = { key, data };
+  return data;
+}
+
+// index.html split where the tags end, so only the small head part is rewritten per request
+let templateCache = null;
+function getIndexTemplate() {
+  const file = path.join(DIST_DIR, "index.html");
+  const key = fileStamp(file);
+  if (key === "none") return null;
+  if (templateCache && templateCache.key === key) return templateCache;
+  const html = fs.readFileSync(file, "utf-8");
+  let cut = html.search(/<script type="module"/);
+  if (cut < 0) cut = html.lastIndexOf("</head>");
+  if (cut < 0) cut = 0;
+  templateCache = {
+    key,
+    // The build writes "./logo.png"-style links, which break on nested paths like /blog/x
+    head: html.slice(0, cut).replace(/(href|src)="\.\//g, '$1="/'),
+    rest: html.slice(cut),
+  };
+  return templateCache;
+}
+
+function findPost(posts, candidates) {
+  return posts.find((p) => {
+    const id = String(p.id || "").toLowerCase();
+    const title = String(p.title || "").toLowerCase().trim();
+    return candidates.some((c) => c && (postSlug(p) === c || id === c || title === c));
+  });
+}
+
+function findPage(pages, candidates) {
+  return pages.find((p) => {
+    const slug = pageSlug(p);
+    if (p.isHome || slug === "home" || slug === "") return false;
+    const id = String(p.id || "").toLowerCase();
+    const title = String(p.title || "").toLowerCase().trim();
+    return candidates.some((c) => c && (slug === c || id === c || title === c));
+  });
+}
+
+function postRoute(post) {
+  const slug = postSlug(post);
+  const description = cleanExcerpt(post.excerpt);
+  const image = httpImage(post.coverImage);
+  return {
+    status: 200,
+    path: `/blog/${slug}`,
+    title: withBrand(`${post.title} | ${BRAND}`),
+    description,
+    image,
+    type: "article",
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      headline: post.title,
+      description,
+      image,
+      author: { "@type": "Person", name: post.author || "Teen Patti Stars Editorial" },
+      publisher: { "@type": "Organization", name: BRAND, url: `${SITE_URL}/` },
+      datePublished: post.date,
+      articleSection: post.category,
+      mainEntityOfPage: `${SITE_URL}/blog/${slug}`,
+    },
+    heading: post.title,
+    bodyHtml: markdownToHtml(post.content),
+  };
+}
+
+function pageRoute(page) {
+  return {
+    status: 200,
+    path: `/${pageSlug(page)}`,
+    title: withBrand(page.seo?.title || `${page.title} | ${BRAND}`),
+    description: cleanExcerpt(page.seo?.description) || `Play Teen Patti on ${page.title}`,
+    image: httpImage(page.seo?.ogImage),
+    heading: page.title,
+    bodyHtml: sectionsToHtml(page.sections),
+  };
+}
+
+const postLinks = (posts) => posts.map((p) => ({ href: `/blog/${postSlug(p)}`, text: p.title }));
+const pageLinks = (pages) =>
+  pages
+    .filter((p) => !p.isHome && !RESERVED_SLUGS.has(pageSlug(p)))
+    .map((p) => ({ href: `/${pageSlug(p)}`, text: p.title }));
+
+// Resolves a request path the same way App.tsx does and describes the page to send
+function resolveSeoRoute(reqPath, data) {
+  let decoded = reqPath;
+  try {
+    decoded = decodeURIComponent(reqPath);
+  } catch {}
+  const clean = trimSlashes(decoded).toLowerCase();
+
+  if (clean.startsWith("admin")) {
+    return { status: 200, path: "/admin", title: `Admin Command HQ | ${BRAND}`, noindex: true, canonicalOnly: true };
+  }
+
+  if (clean === "" || clean === "home" || SECTION_ANCHORS.has(clean)) {
+    return {
+      status: 200,
+      path: "/",
+      title: withBrand(data.seo.title || "Teen Patti Stars — India's Most Refined Real-Money Card Experience"),
+      description:
+        data.seo.description ||
+        "Play with 50 lakh+ verified players. Instant UPI payouts in under 30 seconds. Fair-play RNG certified. Zero bots. Pure thrill.",
+      image: httpImage(data.seo.ogImage),
+      heading: BRAND,
+      bodyHtml: sectionsToHtml(data.homeSections),
+      links: [...pageLinks(data.pages), ...postLinks(data.posts.slice(0, 30))],
+    };
+  }
+  if (clean === "faq" || clean === "faq.html") {
+    return {
+      status: 200,
+      path: "/faq",
+      title: `Frequently Asked Questions (FAQ) | ${BRAND}`,
+      description: "Find instant answers on instant UPI payouts, RNG fair play, card variations, welcome bonuses, and table security.",
+      heading: "Frequently Asked Questions",
+    };
+  }
+  if (clean === "blog" || clean === "blogs") {
+    return {
+      status: 200,
+      path: "/blog",
+      title: `Teen Patti Chronicles & Strategy Guides | ${BRAND}`,
+      description: "Master Teen Patti with expert card strategies, table math, VIP guides, and tournament recaps.",
+      heading: "Teen Patti Chronicles & Strategy Guides",
+      links: postLinks(data.posts),
+    };
+  }
+  if (clean === "sitemap") {
+    return {
+      status: 200,
+      path: "/sitemap",
+      title: `Website Sitemap & AI Index Directory | ${BRAND}`,
+      description: "Complete index of all live pages, strategy guides, tournament recaps, and AI crawler documentation files.",
+      heading: "Sitemap",
+      links: [...pageLinks(data.pages), ...postLinks(data.posts)],
+    };
+  }
+
+  const target = clean.replace(/^blogs?\//, "");
+  const leaf = target.split("/").filter(Boolean).pop() || target;
+  if (/^blogs?\//.test(clean)) {
+    const post = findPost(data.posts, [target, leaf]);
+    if (post) return postRoute(post);
+  }
+  const page = findPage(data.pages, [clean, target, leaf, ROUTE_ALIASES[target], ROUTE_ALIASES[leaf]]);
+  if (page) return pageRoute(page);
+  const post = findPost(data.posts, [target, leaf]);
+  if (post) return postRoute(post);
+
+  return {
+    status: 404,
+    path: `/${trimSlashes(decoded)}`,
+    title: `Page Not Found | ${BRAND}`,
+    noindex: true,
+    heading: "Page not found",
+    links: [{ href: "/", text: BRAND }],
+  };
+}
+
+// Small Markdown subset (headings, lists, links, images, bold) — enough for crawlers to read
+function inlineMarkdown(text) {
+  return escapeHtml(text)
+    .replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g, '<img src="$2" alt="$1" loading="lazy">')
+    .replace(/\[([^\]]+)\]\(((?:https?:\/\/|\/|#)[^)\s]*)\)/g, '<a href="$2">$1</a>')
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+}
+
+function markdownToHtml(markdown) {
+  const out = [];
+  let paragraph = [];
+  let list = null;
+  const flushParagraph = () => {
+    if (paragraph.length) out.push(`<p>${inlineMarkdown(paragraph.join(" "))}</p>`);
+    paragraph = [];
+  };
+  const flushList = () => {
+    if (list) out.push(`<${list.tag}>${list.items.map((i) => `<li>${inlineMarkdown(i)}</li>`).join("")}</${list.tag}>`);
+    list = null;
+  };
+  for (const raw of String(markdown || "").split(/\r?\n/)) {
+    const line = raw.trim();
+    let m;
+    if (!line) {
+      flushParagraph();
+    } else if ((m = line.match(/^(#{1,6})\s+(.+)$/))) {
+      flushParagraph();
+      flushList();
+      // h1 is the page title, so content headings start at h2
+      const level = Math.min(Math.max(m[1].length, 2), 4);
+      out.push(`<h${level}>${inlineMarkdown(m[2])}</h${level}>`);
+    } else if ((m = line.match(/^(?:[-*+]|(\d+)[.)])\s+(.+)$/))) {
+      flushParagraph();
+      const tag = m[1] ? "ol" : "ul";
+      if (list && list.tag !== tag) flushList();
+      if (!list) list = { tag, items: [] };
+      list.items.push(m[2]);
+    } else {
+      flushList();
+      paragraph.push(line);
+    }
+  }
+  flushParagraph();
+  flushList();
+  return out.join("\n");
+}
+
+function sectionsToHtml(sections) {
+  return (sections || [])
+    .filter((s) => s && s.visible !== false && s.data)
+    .map((s) => {
+      const d = s.data;
+      const heading = [d.titlePrefix, d.title, d.titleAccent, d.titleSuffix].filter((v) => typeof v === "string" && v).join(" ");
+      return [
+        heading && `<h2>${escapeHtml(heading)}</h2>`,
+        typeof d.subtitle === "string" && d.subtitle && `<p>${escapeHtml(d.subtitle)}</p>`,
+        typeof d.content === "string" && markdownToHtml(d.content),
+      ]
+        .filter(Boolean)
+        .join("\n");
+    })
+    .join("\n");
+}
+
+function setMetaTag(head, attr, key, value) {
+  const tag = `<meta ${attr}="${key}" content="${escapeHtml(value)}" />`;
+  const re = new RegExp(`<meta\\s+${attr}="${key}"[^>]*>`);
+  return re.test(head) ? head.replace(re, () => tag) : `${head}    ${tag}\n`;
+}
+
+function renderSeoPage(template, route) {
+  const url = `${SITE_URL}${route.path}`;
+  let head = template.head
+    .replace(/<title>[\s\S]*?<\/title>/, () => `<title>${escapeHtml(route.title)}</title>`)
+    .replace(/<link rel="canonical"[^>]*>/, () => `<link rel="canonical" href="${escapeHtml(url)}" />`);
+  head = setMetaTag(head, "name", "robots", route.noindex ? "noindex, follow" : INDEX_ROBOTS);
+
+  if (!route.canonicalOnly) {
+    const description = route.description || DEFAULT_DESCRIPTION;
+    const image = route.image || DEFAULT_OG_IMAGE;
+    const tags = [
+      ["name", "description", description],
+      ["property", "og:title", route.title],
+      ["property", "og:description", description],
+      ["property", "og:url", url],
+      ["property", "og:image", image],
+      ["property", "og:type", route.type || "website"],
+      ["name", "twitter:title", route.title],
+      ["name", "twitter:description", description],
+      ["name", "twitter:image", image],
+    ];
+    for (const [attr, key, value] of tags) head = setMetaTag(head, attr, key, value);
+  }
+  if (route.jsonLd) {
+    // Same id as seoHelper.ts, so the app replaces this script instead of adding a second one
+    const json = JSON.stringify(route.jsonLd).replace(/</g, "\\u003c");
+    head += `    <script type="application/ld+json" id="dynamic-jsonld-schema">${json}</script>\n`;
+  }
+
+  let rest = template.rest;
+  if (route.heading) {
+    const links = route.links?.length
+      ? `<ul>${route.links.map((l) => `<li><a href="${escapeHtml(encodeURI(l.href))}">${escapeHtml(l.text)}</a></li>`).join("")}</ul>`
+      : "";
+    const snapshot =
+      `<noscript><main><h1>${escapeHtml(route.heading)}</h1>` +
+      (route.description ? `<p>${escapeHtml(route.description)}</p>` : "") +
+      (route.bodyHtml || "") +
+      links +
+      "</main></noscript>";
+    const root = '<div id="root"></div>';
+    const at = rest.lastIndexOf(root);
+    if (at >= 0) rest = rest.slice(0, at + root.length) + snapshot + rest.slice(at + root.length);
+  }
+  return head + rest;
+}
+
+// Builds sitemap.xml from the live pages and posts, listing only URLs that resolve to themselves
+function buildSitemapXml(data) {
+  // Dates are saved as "2026-08-30" or "Oct 30, 2026"; read the calendar date as written,
+  // since converting through UTC can shift it by a day
+  const isoDate = (value) => {
+    if (!value) return null;
+    if (/^\d{4}-\d{2}-\d{2}/.test(value)) return String(value).slice(0, 10);
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return null;
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+  const latestPost = data.posts.map((p) => isoDate(p.date)).filter(Boolean).sort().pop() || null;
+  const candidates = [
+    ["/", latestPost],
+    ["/blog", latestPost],
+    ["/faq", null],
+    ["/sitemap", null],
+    ...data.pages.map((p) => [`/${pageSlug(p)}`, isoDate(p.updatedAt || p.createdAt)]),
+    ...data.posts.map((p) => [`/blog/${postSlug(p)}`, isoDate(p.updatedAt || p.date)]),
+  ];
+  const seen = new Set();
+  const urls = [];
+  for (const [urlPath, lastmod] of candidates) {
+    if (seen.has(urlPath)) continue;
+    seen.add(urlPath);
+    const route = resolveSeoRoute(urlPath, data);
+    if (route.status !== 200 || route.noindex || route.path !== urlPath) continue;
+    const loc = escapeHtml(`${SITE_URL}${encodeURI(urlPath)}`);
+    urls.push(`  <url>\n    <loc>${loc}</loc>${lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : ""}\n  </url>`);
+  }
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>\n`;
+}
+
+// nginx serves dist/sitemap.xml as a static file, so rewrite it whenever the live config changes
+function writeSitemap() {
+  const data = getSeoData();
+  if (!data || !fs.existsSync(DIST_DIR)) return;
+  try {
+    fs.writeFileSync(path.join(DIST_DIR, "sitemap.xml"), buildSitemapXml(data));
+  } catch (err) {
+    console.warn("[seo] Could not write sitemap.xml:", err.message);
+  }
+}
+writeSitemap();
+fs.watchFile(CONFIG_FILE, { interval: 10000 }, () => writeSitemap());
+
+// ── Page requests ────────────────────────────────────────────────────────────
+// All non-API, non-static routes serve index.html with that page's tags
+app.get("*", (req, res) => {
+  const template = getIndexTemplate();
+  if (!template) return res.status(503).send("Site not built yet. Run: npm run build");
+
+  const data = getSeoData();
+  if (!data) return res.sendFile(path.join(DIST_DIR, "index.html"));
+
+  const route = resolveSeoRoute(req.path, data);
+  // Old or alternate addresses (/home, /blogs, /some-post, trailing slashes) move to the
+  // canonical one, as long as that address resolves to itself
+  const canonicalPath = encodeURI(route.path);
+  if (route.status === 200 && !route.canonicalOnly && req.path !== canonicalPath) {
+    if (resolveSeoRoute(route.path, data).path === route.path) {
+      const query = req.originalUrl.includes("?") ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
+      return res.redirect(301, canonicalPath + query);
+    }
+  }
+
+  res.status(route.status).type("html").send(renderSeoPage(template, route));
 });
 
 app.listen(PORT, () => {

@@ -525,7 +525,8 @@ export default function App() {
       const cleanSlug = (page.slug || "").replace(/^\/+|\/+$/g, "");
       updateRouteMeta({
         title: page.seo?.title || `${page.title} | Teen Patti Stars`,
-        description: page.seo?.description || `Play Teen Patti on ${page.title}`,
+        // Pages imported from WordPress carry raw image/link markup in their descriptions
+        description: cleanWpExcerpt(page.seo?.description) || `Play Teen Patti on ${page.title}`,
         path: cleanSlug ? `/${cleanSlug}` : "/",
       });
       return;
