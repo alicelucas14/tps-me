@@ -6,7 +6,15 @@ import { restoredPosts } from "./restore-hyderabad-posts.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Must match the PUBLISH_SECRET environment variable set on the server (24+ characters).
+// Never commit the value itself.
+const PUBLISH_SECRET = process.env.PUBLISH_SECRET;
+
 async function main() {
+  if (!PUBLISH_SECRET) {
+    throw new Error("Set PUBLISH_SECRET in your environment to the value configured on the server.");
+  }
+
   console.log("1. Fetching current live config from https://teenpattistars.me/api/config...");
   const configRes = await fetch("https://teenpattistars.me/api/config", { cache: "no-store" });
   if (!configRes.ok) {
@@ -48,7 +56,7 @@ async function main() {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-publish-secret": "tps-publish-2025",
+      "x-publish-secret": PUBLISH_SECRET,
     },
     body: JSON.stringify(liveConfig),
   });

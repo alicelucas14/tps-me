@@ -21,6 +21,7 @@ import {
 import {
   useAdminAuthStore,
   DEFAULT_ROLE_PERMISSIONS,
+  MIN_PASSWORD_LENGTH,
   type AdminAccount,
   type AdminRole,
   type AdminPage,
@@ -135,7 +136,7 @@ export function AccountsManager() {
     setShowAddModal(true);
   };
 
-  const handleCreateAccount = (e: React.FormEvent) => {
+  const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
@@ -144,8 +145,8 @@ export function AccountsManager() {
       return;
     }
 
-    if (!newPassword || newPassword.length < 6) {
-      setFormError("Password must be at least 6 characters long.");
+    if (!newPassword || newPassword.length < MIN_PASSWORD_LENGTH) {
+      setFormError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`);
       return;
     }
 
@@ -154,7 +155,7 @@ export function AccountsManager() {
       return;
     }
 
-    const res = addAccount({
+    const res = await addAccount({
       username: newUsername,
       name: newName || newUsername,
       role: newRole,
@@ -180,13 +181,13 @@ export function AccountsManager() {
     setEditFormError(null);
   };
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingAccount) return;
     setEditFormError(null);
 
-    if (editPassword && editPassword.length < 6) {
-      setEditFormError("New password must be at least 6 characters long.");
+    if (editPassword && editPassword.length < MIN_PASSWORD_LENGTH) {
+      setEditFormError(`New password must be at least ${MIN_PASSWORD_LENGTH} characters long.`);
       return;
     }
 
@@ -204,7 +205,7 @@ export function AccountsManager() {
       updates.password = editPassword;
     }
 
-    const res = updateAccount(editingAccount.id, updates);
+    const res = await updateAccount(editingAccount.id, updates);
     if (!res.success) {
       setEditFormError(res.error || "Failed to update account.");
       return;
@@ -214,9 +215,9 @@ export function AccountsManager() {
     showSuccessBanner(`Account @${editingAccount.username} updated.`);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!deletingAccountId) return;
-    const res = deleteAccount(deletingAccountId);
+    const res = await deleteAccount(deletingAccountId);
     if (!res.success) {
       alert(res.error || "Could not delete account.");
     } else {
@@ -225,13 +226,17 @@ export function AccountsManager() {
     setDeletingAccountId(null);
   };
 
-  const handleToggleStatus = (id: string) => {
-    const res = toggleAccountStatus(id);
+  const handleToggleStatus = async (id: string) => {
+    const res = await toggleAccountStatus(id);
     if (!res.success) {
       alert(res.error || "Could not update status.");
     } else {
       showSuccessBanner("Account status updated.");
     }
+  };
+
+  const alertOnFailure = (res: { success: boolean; error?: string }) => {
+    if (!res.success) alert(res.error || "Could not save permissions.");
   };
 
   const showSuccessBanner = (msg: string) => {
@@ -534,7 +539,7 @@ export function AccountsManager() {
 
           <button
             type="button"
-            onClick={() => resetRolePermissionsToDefault()}
+            onClick={() => resetRolePermissionsToDefault().then(alertOnFailure)}
             className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/70 hover:bg-white/10 hover:text-white transition-all cursor-pointer"
           >
             <RotateCcw className="h-3.5 w-3.5" />
@@ -577,7 +582,7 @@ export function AccountsManager() {
                             type="checkbox"
                             checked={isChecked}
                             disabled={isSuperAdmin}
-                            onChange={() => toggleRolePermission(opt.role, mod.id)}
+                            onChange={() => toggleRolePermission(opt.role, mod.id).then(alertOnFailure)}
                             className="h-4.5 w-4.5 rounded accent-emerald-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                           />
                         </label>
@@ -671,7 +676,7 @@ export function AccountsManager() {
 
               <div>
                 <label className="block text-[11px] font-semibold text-white/70 mb-1">
-                  Initial Password (min 6 characters)
+                  Initial Password (min {MIN_PASSWORD_LENGTH} characters)
                 </label>
                 <div className="relative">
                   <input
@@ -798,7 +803,7 @@ export function AccountsManager() {
                 <div className="space-y-2">
                   <input
                     type="password"
-                    placeholder="New password (min 6 chars)"
+                    placeholder={`New password (min ${MIN_PASSWORD_LENGTH} chars)`}
                     value={editPassword}
                     onChange={(e) => setEditPassword(e.target.value)}
                     className="w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-xs text-white font-mono focus:border-emerald-500 focus:outline-none"

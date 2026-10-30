@@ -25,7 +25,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { useSiteStore } from "../../store/siteStore";
-import { useAdminAuthStore } from "../../store/adminAuthStore";
+import { useAdminAuthStore, MIN_PASSWORD_LENGTH } from "../../store/adminAuthStore";
 import {
   generateDynamicSitemapXml,
   generateDynamicRobotsTxt,
@@ -42,7 +42,6 @@ export function SettingsManager({
     user,
     accounts,
     updateCredentials,
-    resetCredentialsToDefault,
   } = useAdminAuthStore();
   const [saved, setSaved] = useState(false);
   const [gatewayEnabled, setGatewayEnabled] = useState(true);
@@ -62,7 +61,7 @@ export function SettingsManager({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [secMessage, setSecMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const handleUpdateCredentials = (e: React.FormEvent) => {
+  const handleUpdateCredentials = async (e: React.FormEvent) => {
     e.preventDefault();
     setSecMessage(null);
 
@@ -70,8 +69,8 @@ export function SettingsManager({
       setSecMessage({ type: "error", text: "Please enter your current password to authorize changes." });
       return;
     }
-    if (newPassword && newPassword.length < 6) {
-      setSecMessage({ type: "error", text: "New password must be at least 6 characters long." });
+    if (newPassword && newPassword.length < MIN_PASSWORD_LENGTH) {
+      setSecMessage({ type: "error", text: `New password must be at least ${MIN_PASSWORD_LENGTH} characters long.` });
       return;
     }
     if (newPassword && newPassword !== confirmPassword) {
@@ -79,7 +78,7 @@ export function SettingsManager({
       return;
     }
 
-    const res = updateCredentials(currentPassword, newPassword || currentPassword, adminUsername);
+    const res = await updateCredentials(currentPassword, newPassword, adminUsername);
     if (res.success) {
       setSecMessage({ type: "success", text: "Administrator credentials updated successfully!" });
       setCurrentPassword("");
@@ -166,11 +165,21 @@ export function SettingsManager({
   };
 
   const handleSave = async () => {
+    const gaId = gaMeasurementId.trim();
+    // Must match GA_ID_PATTERN in components/GoogleAnalytics.tsx, which ignores anything else
+    if (gaId && !/^(G-[A-Z0-9]{4,20}|UA-\d{4,10}-\d{1,4})$/i.test(gaId)) {
+      alert("That doesn't look like a Google Analytics Measurement ID. It should look like G-XXXXXXXXXX.");
+      return;
+    }
     updateSeo((prev) => ({
       ...prev,
-      googleAnalyticsId: gaMeasurementId.trim(),
+      googleAnalyticsId: gaId,
     }));
-    await publishToServer();
+    const res = await publishToServer();
+    if (!res.success) {
+      alert(res.error || "Could not save to the server.");
+      return;
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -677,20 +686,6 @@ export function SettingsManager({
               <p className="text-xs text-white/50">Manage master administrator username and login authorization</p>
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              resetCredentialsToDefault();
-              setAdminUsername("admin");
-              setSecMessage({ type: "success", text: "Credentials reset to default (admin / admin123)." });
-              setTimeout(() => setSecMessage(null), 4000);
-            }}
-            className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white transition-colors"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            <span>Reset to Default (admin / admin123)</span>
-          </button>
         </div>
 
         {secMessage && (
@@ -742,7 +737,7 @@ export function SettingsManager({
 
           <div>
             <label className="block text-[11px] font-medium text-white/70 mb-1">
-              New Password (min 6 chars)
+              New Password (min {MIN_PASSWORD_LENGTH} chars)
             </label>
             <div className="relative">
               <Lock className="absolute left-3 top-2.5 h-3.5 w-3.5 text-white/40" />

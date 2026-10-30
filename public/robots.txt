@@ -4,32 +4,19 @@
 User-agent: *
 Allow: /
 Disallow: /admin
-Disallow: /#/admin
 
-# AI Search & LLM Web Crawlers
+# AI Search & LLM Web Crawlers.
+# A crawler named in its own group ignores the "*" group, so /admin is repeated here.
 User-agent: GPTBot
-Allow: /
-
 User-agent: ChatGPT-User
-Allow: /
-
 User-agent: PerplexityBot
-Allow: /
-
 User-agent: ClaudeBot
-Allow: /
-
 User-agent: Claude-Web
-Allow: /
-
 User-agent: Google-Extended
-Allow: /
-
 User-agent: CCBot
-Allow: /
-
 User-agent: Amazonbot
 Allow: /
+Disallow: /admin
 
 # Sitemaps & AI Standard Docs
 Sitemap: https://teenpattistars.me/sitemap.xml

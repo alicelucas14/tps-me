@@ -2,6 +2,10 @@ import type { SiteConfig } from "../store/siteStore";
 
 export const DEFAULT_BASE_URL = "https://teenpattistars.me";
 
+const DEFAULT_OG_IMAGE = "https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=1200&q=80";
+// Must match the robots meta in index.html
+const INDEX_ROBOTS = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
+
 /**
  * Dynamically updates document title, description, canonical link, OpenGraph tags, and JSON-LD structured data.
  */
@@ -9,9 +13,10 @@ export function updateRouteMeta({
   title,
   description,
   path = "",
-  ogImage = "https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=1200&q=80",
+  ogImage,
   type = "website",
   jsonLd,
+  noindex = false,
 }: {
   title?: string;
   description?: string;
@@ -19,12 +24,15 @@ export function updateRouteMeta({
   ogImage?: string;
   type?: "website" | "article";
   jsonLd?: object;
+  noindex?: boolean;
 }) {
   if (typeof document === "undefined") return;
 
+  // Most titles already carry the brand ("… | Teen Patti Stars"); only add it when missing
   const fullTitle = title
-    ? `${title} | Teen Patti Stars`
+    ? /teen patti stars/i.test(title) ? title : `${title} | Teen Patti Stars`
     : "Teen Patti Stars — India's Premium Real-Money Card Experience";
+  const image = ogImage || DEFAULT_OG_IMAGE;
   const metaDesc =
     description ||
     "Play Teen Patti for real money with instant 30-second UPI payouts, certified RNG fair tables, and ₹25 Crore tournament prize pools.";
@@ -33,8 +41,9 @@ export function updateRouteMeta({
   // 1. Title
   document.title = fullTitle;
 
-  // 2. Meta description
+  // 2. Meta description & indexing (404 / loading views must not be indexed)
   updateMetaTag("name", "description", metaDesc);
+  updateMetaTag("name", "robots", noindex ? "noindex, follow" : INDEX_ROBOTS);
 
   // 3. Canonical link
   let linkCanonical = document.querySelector<HTMLLinkElement>("link[rel='canonical']");
@@ -49,17 +58,17 @@ export function updateRouteMeta({
   updateMetaTag("property", "og:title", fullTitle);
   updateMetaTag("property", "og:description", metaDesc);
   updateMetaTag("property", "og:url", canonicalUrl);
-  updateMetaTag("property", "og:image", ogImage);
+  updateMetaTag("property", "og:image", image);
   updateMetaTag("property", "og:type", type);
 
   // 5. Twitter
   updateMetaTag("name", "twitter:title", fullTitle);
   updateMetaTag("name", "twitter:description", metaDesc);
-  updateMetaTag("name", "twitter:image", ogImage);
+  updateMetaTag("name", "twitter:image", image);
 
-  // 6. Dynamic JSON-LD Schema
+  // 6. Dynamic JSON-LD Schema (removed on routes without one, so a previous post's schema doesn't linger)
+  let script = document.getElementById("dynamic-jsonld-schema") as HTMLScriptElement | null;
   if (jsonLd) {
-    let script = document.getElementById("dynamic-jsonld-schema") as HTMLScriptElement;
     if (!script) {
       script = document.createElement("script");
       script.id = "dynamic-jsonld-schema";
@@ -67,6 +76,8 @@ export function updateRouteMeta({
       document.head.appendChild(script);
     }
     script.textContent = JSON.stringify(jsonLd);
+  } else if (script) {
+    script.remove();
   }
 }
 
@@ -182,32 +193,19 @@ export function generateDynamicRobotsTxt(baseUrl: string = DEFAULT_BASE_URL): st
 User-agent: *
 Allow: /
 Disallow: /admin
-Disallow: /#/admin
 
-# Explicitly permit AI Crawlers & LLM Indexers
+# Explicitly permit AI Crawlers & LLM Indexers.
+# A crawler named in its own group ignores the "*" group, so /admin is repeated here.
 User-agent: GPTBot
-Allow: /
-
 User-agent: ChatGPT-User
-Allow: /
-
 User-agent: PerplexityBot
-Allow: /
-
 User-agent: ClaudeBot
-Allow: /
-
 User-agent: Claude-Web
-Allow: /
-
 User-agent: Google-Extended
-Allow: /
-
 User-agent: CCBot
-Allow: /
-
 User-agent: Amazonbot
 Allow: /
+Disallow: /admin
 
 # XML Sitemap & AI Documentation
 Sitemap: ${baseUrl}/sitemap.xml

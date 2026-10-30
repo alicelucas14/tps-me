@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Navbar } from "./components/Navbar";
 import { AnnouncementBanner } from "./components/AnnouncementBanner";
 import { Hero } from "./components/Hero";
@@ -21,7 +21,7 @@ import { GlobalBackground } from "./components/GlobalBackground";
 import { GoogleAnalytics } from "./components/GoogleAnalytics";
 import { AdminLayout } from "./admin/AdminLayout";
 import { AdminLogin } from "./admin/pages/AdminLogin";
-import { useSiteStore, isLoremPlaceholder, allSitePages, defaultLandingSections } from "./store/siteStore";
+import { useSiteStore, isLoremPlaceholder, allSitePages, defaultLandingSections, cleanWpExcerpt } from "./store/siteStore";
 import { useAdminAuthStore } from "./store/adminAuthStore";
 import { updateRouteMeta } from "./utils/seoHelper";
 import rawWpPages from "./data/wpPages.json";
@@ -41,14 +41,16 @@ function getActiveRouteString(): string {
 
   const rawHash = window.location.hash.replace(/^#\/?/, "").replace(/\/+$/, "").trim();
   const pathname = window.location.pathname.replace(/^\/+|\/+$/g, "").trim();
+  // Legacy hash routes look like #/blog or #admin; anything else (#some-heading) is a normal in-page fragment
+  const isHashRoute = window.location.hash.startsWith("#/") || /^#admin(\/|$)/i.test(window.location.hash);
 
   // If hash is an in-page section anchor (e.g. #download, #pricing)
   if (rawHash && SECTION_ANCHORS.has(rawHash.toLowerCase())) {
     return pathname && pathname !== "/" ? pathname : "home";
   }
 
-  // If user visits ANY route using a hash (e.g. #admin, /#admin, #/blog, /#/privacy-policy)
-  if (rawHash && rawHash !== "/" && !SECTION_ANCHORS.has(rawHash.toLowerCase())) {
+  // If user visits a legacy hash route (e.g. #admin, /#admin, #/blog, /#/privacy-policy)
+  if (rawHash && isHashRoute) {
     const cleanPath = `/${rawHash}`;
     window.history.replaceState(null, "", cleanPath);
     return rawHash;
@@ -76,17 +78,23 @@ function getActiveRouteString(): string {
 
 export default function App() {
   const [route, setRoute] = useState<string>(getActiveRouteString);
+  const routeRef = useRef(route);
+  useEffect(() => {
+    routeRef.current = route;
+  }, [route]);
 
-  const { publishedConfig, draftConfig, isServerConfigLoaded } = useSiteStore();
+  const { publishedConfig, draftConfig, isServerConfigLoaded, hasServerConfig } = useSiteStore();
   const { isAuthenticated } = useAdminAuthStore();
   const colorMode = publishedConfig.theme?.colorMode || draftConfig.theme?.colorMode || "dark";
 
   const allPages = useMemo(() => {
-    return publishedConfig.pages?.length ? publishedConfig.pages : (draftConfig.pages || []);
+    const pages = publishedConfig.pages?.length ? publishedConfig.pages : (draftConfig.pages || []);
+    return pages.filter((p) => p.status !== "draft");
   }, [publishedConfig.pages, draftConfig.pages]);
 
   const allPosts = useMemo(() => {
-    return publishedConfig.posts?.length ? publishedConfig.posts : (draftConfig.posts || []);
+    const posts = publishedConfig.posts?.length ? publishedConfig.posts : (draftConfig.posts || []);
+    return posts.filter((p) => p.status !== "draft");
   }, [publishedConfig.posts, draftConfig.posts]);
 
   // Clean navigation helper - guarantees no hash in URL
@@ -101,28 +109,20 @@ export default function App() {
   // Listen to popstate and storage events for instant live site sync across tabs
   useEffect(() => {
     const handlePopState = () => {
-      setRoute(getActiveRouteString());
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      const nextRoute = getActiveRouteString();
+      // A fragment-only change (#heading) keeps the route, so don't jump back to the top
+      if (nextRoute !== routeRef.current) {
+        setRoute(nextRoute);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     };
 
     const handleStorageChange = (e: StorageEvent) => {
-      // Sync published changes and brand logo without reloading page
-      if (e.key === "tps_brand_footer_v1" || e.key === "tps_site_config_published_v8") {
-        const siteStore = useSiteStore.getState();
-        const footerStr = localStorage.getItem("tps_brand_footer_v1");
-        if (footerStr) {
-          try {
-            const parsedFooter = JSON.parse(footerStr);
-            siteStore.updateFooter(() => parsedFooter);
-          } catch {}
-        }
-        const publishedStr = localStorage.getItem("tps_site_config_published_v8");
-        if (publishedStr) {
-          try {
-            const parsed = JSON.parse(publishedStr);
-            siteStore.importConfig(parsed);
-          } catch {}
-        }
+      // Another tab published: refetch the full config from the server. The localStorage copy
+      // deliberately omits the bundled posts/pages, so it can't be used directly. Admin tabs are
+      // skipped so a refetch never replaces unsaved draft edits.
+      if (e.key === "tps_site_config_published_v8" && routeRef.current !== "admin") {
+        useSiteStore.getState().loadServerConfig();
       }
     };
 
@@ -132,8 +132,12 @@ export default function App() {
 
     // Global click listener to intercept internal standard links for smooth clean SPA navigation
     const handleGlobalClick = (e: MouseEvent) => {
+      // Leave already-handled clicks, new-tab/new-window clicks and non-primary buttons to the browser
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
       const target = (e.target as HTMLElement)?.closest("a");
       if (!target) return;
+      if (target.target && target.target !== "_self") return;
 
       const href = target.getAttribute("href");
       if (!href) return;
@@ -169,6 +173,14 @@ export default function App() {
           }
           return;
         }
+
+        // Any other #fragment (e.g. a table-of-contents link) scrolls within the current page
+        e.preventDefault();
+        if (!targetId) return;
+        const el = document.getElementById(decodeURIComponent(targetId));
+        if (el) el.scrollIntoView({ behavior: "smooth" });
+        window.history.replaceState(null, "", `${window.location.pathname}${href}`);
+        return;
       }
 
       // Special static assets
@@ -316,8 +328,9 @@ export default function App() {
       return { type: "page-sections" as const, page: matchedStorePage };
     }
 
-    // 3. Fallback to raw WordPress article view if not configured in Elementor
-    const rawWpPage = (rawWpPages as any[]).find((p) => {
+    // 3. Fallback to raw WordPress article view if not configured in Elementor. Once the server
+    // config is in, it is authoritative: a page missing from it was deleted and should 404.
+    const rawWpPage = !hasServerConfig && (rawWpPages as any[]).find((p) => {
       const pSlug = (p.slug || "").replace(/^\/+|\/+$/g, "");
       if (pSlug === "home" || pSlug === "") return false;
       return (
@@ -367,7 +380,24 @@ export default function App() {
 
     // 6. If specific non-home path not found, return not-found view instead of home hero
     return { type: "not-found" as const, slug: clean };
-  }, [route, allPages, allPosts, isServerConfigLoaded]);
+  }, [route, allPages, allPosts, isServerConfigLoaded, hasServerConfig]);
+
+  const sectionsToRender = useMemo(() => {
+    if (resolved.type === "page-sections") {
+      return resolved.page?.sections || [];
+    }
+    if (resolved.type === "home") {
+      const homePage = allPages.find((p) => p.isHome || p.slug === "/" || p.id === "page_home") || allPages[0];
+      if (homePage?.sections && homePage.sections.length > 0 && homePage.sections.some((s) => s.type === "hero" || s.id === "sec_hero")) {
+        return homePage.sections;
+      }
+      if (publishedConfig.sections && publishedConfig.sections.some((s) => s.type === "hero" || s.id === "sec_hero")) {
+        return publishedConfig.sections;
+      }
+      return defaultLandingSections;
+    }
+    return publishedConfig.sections || [];
+  }, [resolved, allPages, publishedConfig.sections]);
 
   // Dynamic SEO & Metadata
   useEffect(() => {
@@ -376,6 +406,17 @@ export default function App() {
         title: "Admin Command HQ | Teen Patti Stars",
         description: "Manage Teen Patti Stars website, pages, tournaments, and SEO settings.",
         path: "/admin",
+        noindex: true,
+      });
+      return;
+    }
+
+    if (resolved.type === "not-found" || resolved.type === "loading") {
+      const path = window.location.pathname.replace(/\/+$/, "") || "/";
+      updateRouteMeta({
+        title: resolved.type === "loading" ? "Loading… | Teen Patti Stars" : "Page Not Found | Teen Patti Stars",
+        path,
+        noindex: true,
       });
       return;
     }
@@ -431,9 +472,10 @@ export default function App() {
 
     if (resolved.type === "blog-single" && resolved.post) {
       const post = resolved.post;
+      const excerpt = cleanWpExcerpt(post.excerpt);
       updateRouteMeta({
         title: `${post.title} | Teen Patti Stars`,
-        description: post.excerpt,
+        description: excerpt,
         path: `/blog/${post.slug}`,
         ogImage: post.coverImage || "https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=1200&q=80",
         type: "article",
@@ -441,7 +483,7 @@ export default function App() {
           "@context": "https://schema.org",
           "@type": "BlogPosting",
           headline: post.title,
-          description: post.excerpt,
+          description: excerpt,
           image: post.coverImage || "https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=1200&q=80",
           author: {
             "@type": "Person",
@@ -489,13 +531,16 @@ export default function App() {
       return;
     }
 
-    // Default Home
+    // Default Home — uses the site-wide SEO settings from the builder when set
     updateRouteMeta({
-      title: "Teen Patti Stars — India's Most Refined Real-Money Card Experience",
-      description: "Play with 50 lakh+ verified players. Instant UPI payouts in under 30 seconds. Fair-play RNG certified. Zero bots. Pure thrill.",
+      title: publishedConfig.seo?.title || "Teen Patti Stars — India's Most Refined Real-Money Card Experience",
+      description:
+        publishedConfig.seo?.description ||
+        "Play with 50 lakh+ verified players. Instant UPI payouts in under 30 seconds. Fair-play RNG certified. Zero bots. Pure thrill.",
       path: "/",
+      ogImage: publishedConfig.seo?.ogImage,
     });
-  }, [resolved]);
+  }, [resolved, publishedConfig.seo]);
 
   // Admin Studio Mode
   if (resolved.type === "admin") {
@@ -525,23 +570,6 @@ export default function App() {
     );
   }
 
-  const sectionsToRender = useMemo(() => {
-    if (resolved.type === "page-sections") {
-      return resolved.page?.sections || [];
-    }
-    if (resolved.type === "home") {
-      const homePage = allPages.find((p) => p.isHome || p.slug === "/" || p.id === "page_home") || allPages[0];
-      if (homePage?.sections && homePage.sections.length > 0 && homePage.sections.some((s) => s.type === "hero" || s.id === "sec_hero")) {
-        return homePage.sections;
-      }
-      if (publishedConfig.sections && publishedConfig.sections.some((s) => s.type === "hero" || s.id === "sec_hero")) {
-        return publishedConfig.sections;
-      }
-      return defaultLandingSections;
-    }
-    return publishedConfig.sections || [];
-  }, [resolved, allPages, publishedConfig.sections]);
-
   return (
     <div
       data-theme={colorMode}
@@ -553,12 +581,12 @@ export default function App() {
 
       {/* Dynamic Global Background Layer */}
       <GlobalBackground
-        background={publishedConfig.theme.background}
+        background={publishedConfig.theme?.background}
         colorMode={colorMode}
       />
 
       {/* Global noise overlay */}
-      {publishedConfig.theme.noiseOverlay && (
+      {publishedConfig.theme?.noiseOverlay && (
         <div className="pointer-events-none fixed inset-0 z-[1] noise" />
       )}
 

@@ -103,8 +103,6 @@ export function PostsManager() {
   const [showArticlePickerModal, setShowArticlePickerModal] = useState(false);
   const [isCoverCompressing, setIsCoverCompressing] = useState(false);
   const [coverFileError, setCoverFileError] = useState<string | null>(null);
-  const [showCoverUrlInput, setShowCoverUrlInput] = useState(false);
-  const [showCoverPresets, setShowCoverPresets] = useState(false);
   const [isCoverDragging, setIsCoverDragging] = useState(false);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
 

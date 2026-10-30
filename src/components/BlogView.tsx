@@ -18,7 +18,7 @@ import {
   FolderOpen,
   MessageCircle,
 } from "lucide-react";
-import { useSiteStore, type PostConfig } from "../store/siteStore";
+import { useSiteStore, cleanWpExcerpt, type PostConfig } from "../store/siteStore";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { getPostCoverImage, handleImageError } from "../utils/imageFallback";
 
@@ -34,7 +34,10 @@ export function BlogView({
   onNavigatePost?: (slug: string) => void;
 }) {
   const { publishedConfig, draftConfig } = useSiteStore();
-  const allPosts = publishedConfig.posts?.length ? publishedConfig.posts : (draftConfig.posts || []);
+  const allPosts = useMemo(() => {
+    const posts = publishedConfig.posts?.length ? publishedConfig.posts : (draftConfig.posts || []);
+    return posts.filter((p) => p.status !== "draft");
+  }, [publishedConfig.posts, draftConfig.posts]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -107,6 +110,8 @@ export function BlogView({
         onNavigatePost={onNavigatePost}
         onSelectCategory={(cat) => {
           setSelectedCategory(cat);
+          setSearchQuery("");
+          setPage(1);
           onBack();
         }}
       />
@@ -158,7 +163,7 @@ export function BlogView({
 
           {/* Category Chips */}
           <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-            {categories.slice(0, 10).map((cat) => (
+            {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => {
@@ -219,7 +224,7 @@ export function BlogView({
                     {post.title}
                   </h2>
                   <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-white/60">
-                    {post.excerpt}
+                    {cleanWpExcerpt(post.excerpt)}
                   </p>
                 </div>
 
@@ -426,7 +431,7 @@ function SinglePostView({
               {/* Excerpt Lead */}
               {post.excerpt && (
                 <p className="mt-4 text-base md:text-lg text-white/70 leading-relaxed">
-                  {post.excerpt}
+                  {cleanWpExcerpt(post.excerpt)}
                 </p>
               )}
 

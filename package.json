@@ -10,13 +10,11 @@
     "preview": "vite preview",
     "serve": "node server.js"
   },
-
   "dependencies": {
     "clsx": "2.1.1",
     "compression": "^1.7.5",
     "express": "^4.21.2",
     "framer-motion": "^12.42.2",
-
     "lucide-react": "^1.27.0",
     "react": "19.2.6",
     "react-dom": "19.2.6",
@@ -31,7 +29,7 @@
     "@vitejs/plugin-react": "5.1.1",
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3",
-    "vite": "7.3.2",
+    "vite": "7.3.7",
     "vite-plugin-singlefile": "2.3.0"
   }
 }

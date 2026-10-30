@@ -18,8 +18,12 @@ import { DEFAULT_BASE_URL } from "../utils/seoHelper";
 
 export function SitemapView({ onBack }: { onBack: () => void }) {
   const { publishedConfig, draftConfig } = useSiteStore();
-  const pages = publishedConfig.pages?.length ? publishedConfig.pages : (draftConfig.pages || []);
-  const posts = publishedConfig.posts?.length ? publishedConfig.posts : (draftConfig.posts || []);
+  const pages = (publishedConfig.pages?.length ? publishedConfig.pages : (draftConfig.pages || [])).filter(
+    (p) => p.status !== "draft"
+  );
+  const posts = (publishedConfig.posts?.length ? publishedConfig.posts : (draftConfig.posts || [])).filter(
+    (p) => p.status !== "draft"
+  );
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | "pages" | "posts">("all");

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Layers,
@@ -46,8 +46,13 @@ export type AdminPage =
 export function AdminLayout({ onExitToSite }: { onExitToSite: () => void }) {
   const [currentPage, setCurrentPage] = useState<AdminPage>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { logout, user, rolePermissions: storePermissions } = useAdminAuthStore();
+  const { logout, user, rolePermissions: storePermissions, verifySession } = useAdminAuthStore();
   const { setCurrentPageId } = useSiteStore();
+
+  // The locally remembered sign-in is only a hint; drop back to the login screen if the server disagrees
+  useEffect(() => {
+    verifySession();
+  }, [verifySession]);
 
   const handleEditWithBuilder = (pageId: string) => {
     setCurrentPageId(pageId);

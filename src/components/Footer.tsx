@@ -7,16 +7,7 @@ export function Footer() {
   const { publishedConfig } = useSiteStore();
 
   const footer: FooterConfig = useMemo(() => {
-    let resolved = publishedConfig?.footer || defaultFooterConfig;
-    try {
-      const savedStr = typeof window !== "undefined" ? localStorage.getItem("tps_brand_footer_v1") : null;
-      if (savedStr) {
-        const parsed: Partial<FooterConfig> = JSON.parse(savedStr);
-        if (parsed && (parsed.logoImageUrl || parsed.logoType)) {
-          resolved = { ...defaultFooterConfig, ...(publishedConfig?.footer || {}), ...parsed };
-        }
-      }
-    } catch {}
+    const resolved = publishedConfig?.footer || defaultFooterConfig;
     return {
       ...resolved,
       logoType: resolved.logoType || "image",

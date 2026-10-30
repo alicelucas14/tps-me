@@ -17,18 +17,9 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
   const { publishedConfig } = useSiteStore();
 
-  // Instant direct resolution from standalone brand store
+  // The published config is the single source of truth for brand & APK links
   const brand: FooterConfig = useMemo(() => {
-    let resolved = publishedConfig.footer || defaultFooterConfig;
-    try {
-      const savedStr = typeof window !== "undefined" ? localStorage.getItem("tps_brand_footer_v1") : null;
-      if (savedStr) {
-        const parsed: Partial<FooterConfig> = JSON.parse(savedStr);
-        if (parsed && (parsed.logoImageUrl || parsed.logoType || parsed.apkUrl !== undefined || parsed.iosUrl !== undefined || parsed.brandTitle)) {
-          resolved = { ...defaultFooterConfig, ...(publishedConfig?.footer || {}), ...parsed };
-        }
-      }
-    } catch {}
+    const resolved = { ...defaultFooterConfig, ...(publishedConfig.footer || {}) };
     return {
       ...resolved,
       logoType: resolved.logoType || "image",

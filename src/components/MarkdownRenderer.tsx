@@ -7,6 +7,16 @@ interface MarkdownRendererProps {
   className?: string;
 }
 
+// "## Gaming Portfolio" -> "gaming-portfolio", so in-article #anchor links have a target
+function headingId(text: string): string {
+  return text
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/[\s-]+/g, "-");
+}
+
 export function MarkdownRenderer({ content, className = "" }: MarkdownRendererProps) {
   if (!content) return null;
 
@@ -33,7 +43,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
         // Heading 1
         if (trimmed.startsWith("# ")) {
           return (
-            <h1 key={idx} className="mt-8 mb-4 text-2xl md:text-3xl font-bold tracking-tight text-white border-b border-white/10 pb-3">
+            <h1 key={idx} id={headingId(trimmed.substring(2))} className="mt-8 mb-4 text-2xl md:text-3xl font-bold tracking-tight text-white border-b border-white/10 pb-3">
               {renderInline(trimmed.substring(2))}
             </h1>
           );
@@ -42,7 +52,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
         // Heading 2
         if (trimmed.startsWith("## ")) {
           return (
-            <h2 key={idx} className="mt-7 mb-3 text-xl md:text-2xl font-bold tracking-tight text-emerald-300">
+            <h2 key={idx} id={headingId(trimmed.substring(3))} className="mt-7 mb-3 text-xl md:text-2xl font-bold tracking-tight text-emerald-300">
               {renderInline(trimmed.substring(3))}
             </h2>
           );
@@ -51,7 +61,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
         // Heading 3
         if (trimmed.startsWith("### ")) {
           return (
-            <h3 key={idx} className="mt-6 mb-2 text-lg md:text-xl font-bold text-amber-300">
+            <h3 key={idx} id={headingId(trimmed.substring(4))} className="mt-6 mb-2 text-lg md:text-xl font-bold text-amber-300">
               {renderInline(trimmed.substring(4))}
             </h3>
           );

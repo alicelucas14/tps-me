@@ -63,7 +63,8 @@ export function FAQ({ dynamicData }: { dynamicData?: FAQSectionData }) {
     ],
   };
 
-  const displayedItems = showAllInline ? d.items : d.items.slice(0, 3);
+  const allItems = Array.isArray(d.items) ? d.items : [];
+  const displayedItems = showAllInline ? allItems : allItems.slice(0, 3);
 
   return (
     <section id="faq" className="relative overflow-hidden py-24 md:py-32">

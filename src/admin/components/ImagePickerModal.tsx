@@ -15,7 +15,6 @@ import {
   HelpCircle,
   FolderOpen,
   Eye,
-  Copy,
   AlertCircle,
   ExternalLink,
 } from "lucide-react";
@@ -723,6 +722,9 @@ export function ImagePickerModal({
                     <p className="mt-1 text-xs text-white/50">
                       Supports PNG, JPG, WebP, GIF, SVG, and AVIF up to 25MB
                     </p>
+                    {aspectRatioHint && (
+                      <p className="mt-0.5 text-[11px] text-white/40">{aspectRatioHint}</p>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap items-center justify-center gap-2 pt-2">

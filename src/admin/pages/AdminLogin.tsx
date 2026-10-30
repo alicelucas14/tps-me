@@ -22,7 +22,7 @@ export function AdminLogin({ onLoginSuccess, onExitToSite }: AdminLoginProps) {
     login,
     savedUsername,
     rememberMe: initialRememberMe,
-    loadServerAccounts,
+    verifySession,
   } = useAdminAuthStore();
 
   const [username, setUsername] = useState(savedUsername || "");
@@ -33,10 +33,10 @@ export function AdminLogin({ onLoginSuccess, onExitToSite }: AdminLoginProps) {
   const [loading, setLoading] = useState(false);
   const [shake, setShake] = useState(false);
 
-  // Sync latest accounts from server on component mount
+  // Resume an existing server session (e.g. after a page refresh) without asking for the password again
   useEffect(() => {
-    loadServerAccounts();
-  }, [loadServerAccounts]);
+    verifySession();
+  }, [verifySession]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

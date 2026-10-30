@@ -172,19 +172,9 @@ export function SocialSidebar() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState(false);
 
-  // Sync social URLs from store/footer settings if customized
-  const storeSocials = useMemo(() => {
-    let list: FooterSocialItem[] = publishedConfig?.footer?.socials || defaultFooterConfig.socials || [];
-    try {
-      const savedStr = typeof window !== "undefined" ? localStorage.getItem("tps_brand_footer_v1") : null;
-      if (savedStr) {
-        const parsed = JSON.parse(savedStr);
-        if (parsed?.socials && Array.isArray(parsed.socials)) {
-          list = parsed.socials;
-        }
-      }
-    } catch {}
-    return list;
+  // Social URLs come from the published footer settings
+  const storeSocials = useMemo<FooterSocialItem[]>(() => {
+    return publishedConfig?.footer?.socials || defaultFooterConfig.socials || [];
   }, [publishedConfig?.footer?.socials]);
 
   // Mirror the Footer Manager "Social Links" list exactly (same entries, names, icons, order)

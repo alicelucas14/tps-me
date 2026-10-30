@@ -3,6 +3,7 @@ import rawWpPosts from "../data/wpPosts.json";
 import rawWpPages from "../data/wpPages.json";
 import defaultLogoUrl from "../assets/logo.png";
 import { getPostCoverImage, getPageCoverImage } from "../utils/imageFallback";
+import { useAdminAuthStore } from "./adminAuthStore";
 
 export type DeviceMode = "desktop" | "tablet" | "mobile";
 export type EditorTab = "elements" | "navigator" | "content" | "style" | "settings";
@@ -1135,13 +1136,15 @@ Top 50 finalists receive complimentary 5-star hotel accommodations at Taj Exotic
   },
 ];
 
-const cleanWpExcerpt = (text?: string): string => {
+export const cleanWpExcerpt = (text?: string): string => {
   if (!text) return "";
   return text
     .replace(/[\r\n]+/g, " ")
     .replace(/!\[?[^\]()]*\]?\s*\([^)]*\)/gi, "")
     .replace(/![^(\s\)]*\([^)]*\)/gi, "")
     .replace(/!\([^)]*\)/gi, "")
+    // Link targets left over from WordPress, e.g. "rummy games(https://…/)"
+    .replace(/\(\s*https?:\/\/[^)]*\)/gi, "")
     .replace(/https?:\/\/\S+/gi, "")
     .replace(/\[[^\]]*$/g, "")
     .replace(/^[,\s(:;\\/-]+/, "")
@@ -1338,16 +1341,6 @@ const THEME_MODE_KEY = "tps_color_mode";
 export const BRAND_FOOTER_KEY = "tps_brand_footer_v1";
 const IMAGE_BLOBS_KEY = "tps_image_blobs_v1";
 
-// Must match PUBLISH_SECRET env var on the server (default: tps-publish-2025)
-export const PUBLISH_SECRET_KEY = "tps_publish_secret_v1";
-export function getPublishSecret(): string {
-  try {
-    return localStorage.getItem(PUBLISH_SECRET_KEY) || "tps-publish-2025";
-  } catch {
-    return "tps-publish-2025";
-  }
-}
-
 
 /**
  * Strip data: blob URLs out of section data and save them separately
@@ -1485,9 +1478,9 @@ export function rehydrateBlobs(config: any): any {
 }
 
 function safeLocalStorageSet(key: string, value: any) {
+  if (typeof window === "undefined") return;
+  let payload = value;
   try {
-    if (typeof window === "undefined") return;
-    let payload = value;
     if (value && typeof value === "object") {
       // Exclude static bundled WP posts from localStorage to save ~2.4MB
       const customPosts = (value.posts || []).filter(
@@ -1693,6 +1686,8 @@ interface SiteStoreState {
   historyIndex: number;
   hasUnsavedChanges: boolean;
   isServerConfigLoaded: boolean;
+  /** True once a config from /api/config has been applied (false while loading or if the server had none). */
+  hasServerConfig: boolean;
   deletedPostIds: string[];
   deletedPageIds: string[];
 
@@ -1779,6 +1774,7 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
     historyIndex: 0,
     hasUnsavedChanges: JSON.stringify(initial.published) !== JSON.stringify(initial.draft),
     isServerConfigLoaded: false,
+    hasServerConfig: false,
     deletedPostIds: [],
     deletedPageIds: [],
 
@@ -2580,18 +2576,18 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
           deletedPageIds,
         };
 
-        const secret = getPublishSecret();
+        // Authorized by the admin's HttpOnly session cookie
         const response = await fetch("/api/publish", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-publish-secret": secret,
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
           const err = await response.json().catch(() => ({ error: "Unknown error" }));
+          if (response.status === 401) {
+            useAdminAuthStore.getState().logout();
+          }
           return { success: false, error: err.error || `HTTP ${response.status}` };
         }
 
@@ -2611,7 +2607,8 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
 
     loadServerConfig: async () => {
       try {
-        const response = await fetch("/api/config", { cache: "no-store" });
+        // "no-cache" revalidates with the server's ETag, so unchanged config comes back as a cheap 304
+        const response = await fetch("/api/config", { cache: "no-cache" });
         if (!response.ok) {
           set({ isServerConfigLoaded: true });
           return;
@@ -2657,20 +2654,22 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
           hydrated.currentPageId = "page_home";
         }
 
-        // Ensure footer includes defaultFooterConfig fields and saved brand settings
-        let savedFooterBrand: Partial<FooterConfig> = {};
-        try {
-          const savedStr = localStorage.getItem(BRAND_FOOTER_KEY);
-          if (savedStr) savedFooterBrand = JSON.parse(savedStr);
-        } catch {}
-
+        // The published footer is authoritative. A locally cached brand copy may be stale (another
+        // device, or unpublished edits) and must not override it — or be re-published over it.
         hydrated.footer = {
           ...defaultFooterConfig,
           ...(hydrated.footer || {}),
-          ...savedFooterBrand,
-          apkUrl: (hydrated.footer?.apkUrl) || savedFooterBrand.apkUrl || defaultFooterConfig.apkUrl,
-          iosUrl: (hydrated.footer?.iosUrl) || savedFooterBrand.iosUrl || defaultFooterConfig.iosUrl,
+          apkUrl: hydrated.footer?.apkUrl || defaultFooterConfig.apkUrl,
+          iosUrl: hydrated.footer?.iosUrl || defaultFooterConfig.iosUrl,
         };
+        try {
+          localStorage.setItem(BRAND_FOOTER_KEY, JSON.stringify(hydrated.footer));
+        } catch {}
+
+        // Same defaults loadInitialConfig applies, so a config missing them can't crash rendering
+        if (!hydrated.theme) hydrated.theme = defaultSiteConfig.theme;
+        if (!hydrated.theme.background) hydrated.theme.background = defaultSiteConfig.theme.background;
+        if (!hydrated.seo) hydrated.seo = defaultSiteConfig.seo;
 
         safeLocalStorageSet(LOCAL_STORAGE_KEY_PUBLISHED, hydrated);
         safeLocalStorageSet(LOCAL_STORAGE_KEY_DRAFT, hydrated);
@@ -2681,6 +2680,7 @@ export const useSiteStore = create<SiteStoreState>((set, get) => {
           historyIndex: 0,
           hasUnsavedChanges: false,
           isServerConfigLoaded: true,
+          hasServerConfig: true,
         });
       } catch (err) {
         // Server not reachable — silently fall back to localStorage
