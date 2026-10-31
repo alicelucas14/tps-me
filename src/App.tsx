@@ -23,7 +23,7 @@ import { AdminLayout } from "./admin/AdminLayout";
 import { AdminLogin } from "./admin/pages/AdminLogin";
 import { useSiteStore, isLoremPlaceholder, allSitePages, defaultLandingSections, cleanWpExcerpt } from "./store/siteStore";
 import { useAdminAuthStore } from "./store/adminAuthStore";
-import { updateRouteMeta } from "./utils/seoHelper";
+import { updateRouteMeta, absoluteImageUrl } from "./utils/seoHelper";
 import rawWpPages from "./data/wpPages.json";
 
 const SECTION_ANCHORS = new Set([
@@ -433,15 +433,9 @@ export default function App() {
         jsonLd: {
           "@context": "https://schema.org",
           "@type": "FAQPage",
+          // No legal-status Q&A here: structured data can surface as a Google answer, and that
+          // claim needs a legal check under India's 2025 online gaming law first
           mainEntity: [
-            {
-              "@type": "Question",
-              name: "Is Teen Patti Stars 100% legal to play in India?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: "Yes. Game-of-skill tournaments and card games played with strategy are protected under Indian law and distinguished from pure chance gambling by multiple Supreme Court precedents.",
-              },
-            },
             {
               "@type": "Question",
               name: "How fast are UPI withdrawals processed?",
@@ -481,14 +475,14 @@ export default function App() {
         title: `${post.title} | Teen Patti Stars`,
         description: excerpt,
         path: `/blog/${post.slug}`,
-        ogImage: post.coverImage || "https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=1200&q=80",
+        ogImage: post.coverImage,
         type: "article",
         jsonLd: {
           "@context": "https://schema.org",
           "@type": "BlogPosting",
           headline: post.title,
           description: excerpt,
-          image: post.coverImage || "https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&w=1200&q=80",
+          image: absoluteImageUrl(post.coverImage),
           author: {
             "@type": "Person",
             name: post.author || "Teen Patti Stars Editorial",

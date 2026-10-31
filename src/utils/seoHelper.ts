@@ -7,6 +7,18 @@ const DEFAULT_OG_IMAGE = "https://images.unsplash.com/photo-1511193311914-0346f1
 const INDEX_ROBOTS = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
 
 /**
+ * Absolute URL for og:image / JSON-LD images. Uploads are site paths like /media/x.webp;
+ * anything else that isn't an http(s) URL (e.g. an unsaved data: URL) falls back to the default.
+ * Mirrors httpImage in server.js.
+ */
+export function absoluteImageUrl(src?: string | null): string {
+  if (!src) return DEFAULT_OG_IMAGE;
+  if (/^https?:\/\//.test(src)) return src;
+  if (/^\/[^/]/.test(src)) return `${DEFAULT_BASE_URL}${src}`;
+  return DEFAULT_OG_IMAGE;
+}
+
+/**
  * Dynamically updates document title, description, canonical link, OpenGraph tags, and JSON-LD structured data.
  */
 export function updateRouteMeta({
@@ -32,7 +44,7 @@ export function updateRouteMeta({
   const fullTitle = title
     ? /teen patti stars/i.test(title) ? title : `${title} | Teen Patti Stars`
     : "Teen Patti Stars — India's Premium Real-Money Card Experience";
-  const image = ogImage || DEFAULT_OG_IMAGE;
+  const image = absoluteImageUrl(ogImage);
   const metaDesc =
     description ||
     "Play Teen Patti for real money with instant 30-second UPI payouts, certified RNG fair tables, and ₹25 Crore tournament prize pools.";

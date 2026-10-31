@@ -31,6 +31,8 @@ const BLOBS_FILE = path.join(DATA_DIR, "site-blobs.json");
 const ACCOUNTS_FILE = path.join(DATA_DIR, "admin-accounts.json");
 const SESSION_SECRET_FILE = path.join(DATA_DIR, ".session-secret");
 const BACKUPS_DIR = path.join(DATA_DIR, "backups");
+// Uploaded images, saved as files so they stay out of site-config.json (see extractInlineImages)
+const MEDIA_DIR = path.join(DATA_DIR, "media");
 const IMMEDIATE_BACKUP_FILE = path.join(DATA_DIR, "site-config.backup.json");
 
 const DEFAULT_ROLE_PERMISSIONS = {
@@ -468,6 +470,8 @@ app.get("/llms.txt", (req, res) => {
 // ── Serve static dist files first ──────────────────────────────────────────
 // index: false so "/" reaches the SEO page handler below instead of the bare index.html
 app.use(express.static(DIST_DIR, { index: false }));
+// File names are content hashes, so a cached image never goes stale
+app.use("/media", express.static(MEDIA_DIR, { maxAge: "365d", immutable: true }));
 
 // ── Auto-heal & sanitize site config on server ──────────────────────────────
 // Mirrors isLoremPlaceholder() in src/store/siteStore.ts
@@ -592,6 +596,48 @@ function snapshotCurrentConfig() {
   return existingRaw;
 }
 
+// ── Uploaded images ─────────────────────────────────────────────────────────
+// The admin panel sends uploaded images as base64 data: URLs inside the config. Kept there,
+// they made /api/config 13 MB, so each one is written to data/media/<hash>.<ext> and replaced
+// with its /media/ URL. Identical images map to the same file, so re-publishing is harmless.
+const INLINE_IMAGE_RE = /data:image\/(png|jpe?g|webp|gif|avif);base64,([A-Za-z0-9+/=]+)(?=["')])/g;
+const MEDIA_EXTENSIONS = { png: "png", jpeg: "jpg", jpg: "jpg", webp: "webp", gif: "gif", avif: "avif" };
+
+function extractInlineImages(value) {
+  const json = JSON.stringify(value);
+  if (!json || !json.includes("data:image/")) return { value, count: 0 };
+  let count = 0;
+  const replaced = json.replace(INLINE_IMAGE_RE, (match, type, base64) => {
+    const bytes = Buffer.from(base64, "base64");
+    if (bytes.length === 0) return match;
+    const name = `${crypto.createHash("sha1").update(bytes).digest("hex").slice(0, 20)}.${MEDIA_EXTENSIONS[type]}`;
+    const file = path.join(MEDIA_DIR, name);
+    if (!fs.existsSync(file)) {
+      fs.mkdirSync(MEDIA_DIR, { recursive: true });
+      fs.writeFileSync(file, bytes);
+    }
+    count++;
+    return `/media/${name}`;
+  });
+  return { value: count ? JSON.parse(replaced) : value, count };
+}
+
+// Configs saved before this (or restored from a backup) still embed their images
+function migrateConfigImages() {
+  try {
+    if (!fs.existsSync(CONFIG_FILE)) return;
+    const raw = fs.readFileSync(CONFIG_FILE, "utf-8");
+    if (!raw.includes("data:image/")) return;
+    const { value, count } = extractInlineImages(JSON.parse(raw));
+    if (!count) return;
+    snapshotCurrentConfig();
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(value));
+    console.log(`[media] Moved ${count} embedded images from site-config.json to data/media/`);
+  } catch (err) {
+    console.warn("[media] Could not move embedded images:", err.message);
+  }
+}
+
 // ── GET /api/config ─────────────────────────────────────────────────────────
 // Returns the server-side published config (or null if none saved yet).
 // The serialized response is cached until the files on disk change, and sent with
@@ -696,12 +742,12 @@ app.post("/api/publish", requireAdmin(null, { allowPublishSecret: true }), publi
       console.warn("[Publish Safety] Error during backup or safe merge:", err);
     }
 
-    // Save main config (without raw blobs — keep file size manageable)
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 0));
+    // Save main config, with uploaded images moved out to data/media/
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(extractInlineImages(config).value, null, 0));
 
-    // Save blobs (base64 images) separately
+    // Save blobs separately (their images become /media/ URLs too)
     if (__blobs && Object.keys(__blobs).length > 0) {
-      fs.writeFileSync(BLOBS_FILE, JSON.stringify(__blobs, null, 0));
+      fs.writeFileSync(BLOBS_FILE, JSON.stringify(extractInlineImages(__blobs).value, null, 0));
     }
 
     const who = req.admin ? `by ${req.admin.account.username}` : "via publish secret";
@@ -1038,7 +1084,13 @@ const trimSlashes = (s) => String(s || "").replace(/^\/+|\/+$/g, "");
 const pageSlug = (p) => trimSlashes(p.slug).toLowerCase();
 const postSlug = (p) => trimSlashes(p.slug).replace(/^blogs?\//, "").toLowerCase();
 const withBrand = (title) => (/teen patti stars/i.test(title) ? title : `${title} | ${BRAND}`);
-const httpImage = (src) => (typeof src === "string" && /^https?:\/\//.test(src) ? src : DEFAULT_OG_IMAGE);
+// Absolute image URL for og:image / JSON-LD; uploads are site paths like /media/x.webp
+function httpImage(src) {
+  if (typeof src !== "string") return DEFAULT_OG_IMAGE;
+  if (/^https?:\/\//.test(src)) return src;
+  if (/^\/[^/]/.test(src)) return `${SITE_URL}${src}`;
+  return DEFAULT_OG_IMAGE;
+}
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
@@ -1412,8 +1464,12 @@ function writeSitemap() {
     console.warn("[seo] Could not write sitemap.xml:", err.message);
   }
 }
+migrateConfigImages();
 writeSitemap();
-fs.watchFile(CONFIG_FILE, { interval: 10000 }, () => writeSitemap());
+fs.watchFile(CONFIG_FILE, { interval: 10000 }, () => {
+  migrateConfigImages();
+  writeSitemap();
+});
 
 // ── Page requests ────────────────────────────────────────────────────────────
 // All non-API, non-static routes serve index.html with that page's tags
